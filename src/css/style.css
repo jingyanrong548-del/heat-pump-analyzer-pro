@@ -1,0 +1,24 @@
+@import "tailwindcss";
+/* src/css/style.css */
+
+/* --- Grid Layout for Input Groups --- */
+.input-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem; /* 24px */
+}
+/* src/css/style.css */
+
+/* --- FINAL FIX: Tooltip Styles using Tailwind's @apply --- */
+.tooltip-container {
+    @apply relative inline-block;
+}
+
+.tooltip-text {
+    @apply invisible absolute z-10 w-64 p-2 -mt-1 text-xs leading-tight text-white transform -translate-x-1/2 bg-gray-800 rounded-lg shadow-lg opacity-0 left-1/2 bottom-full;
+    @apply transition-opacity duration-300;
+}
+
+.tooltip-container:hover .tooltip-text {
+    @apply visible opacity-100;
+}
