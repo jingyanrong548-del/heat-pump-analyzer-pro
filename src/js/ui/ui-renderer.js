@@ -1,4 +1,4 @@
-// ui-renderer.js (CLEANED, FINAL, FULLY FUNCTIONAL VERSION)
+// ui-renderer.js (V13.0 - FINAL ROBUST FIX)
 import { fWan, fTon, fCop, fPercent, fYears, fNum, fInt, fYuan, fInvest } from '../core/utils.js';
 
 let notifierTimeout = null;
@@ -289,6 +289,9 @@ function renderCostComparisonResults(results) {
 // --- Detail, Risk, and Print Functions (NOW WITH FULL LOGIC) ---
 
 export function populateCalculationDetails(results) {
+        // V13.0 调试代码
+    console.log('--- [Debug] 正在渲染详细过程，收到的 results 对象是: ---', results);
+    
     const detailsContainer = document.getElementById('calculation-details');
     if (!detailsContainer) return;
     
@@ -345,6 +348,8 @@ function populateCostComparisonCalculationDetails(results) {
     if (!detailsContainer) return;
     
     const { isHybridMode, lccParams, hp, comparisons, inputs, hybridSystem, hybrid_aux } = results;
+    // FINAL FIX: Also get hpSystemDetails for robust data access
+    const hpSystemDetails = isHybridMode ? hybridSystem : hp;
     const { annualHeatingDemandKWh, weightedAvgElecPrice } = inputs;
     const gridFactorToDisplay = inputs.isGreenElectricity ? 0 : inputs.gridFactor;
     const gridFactorLabel = inputs.isGreenElectricity ? '绿电因子' : '电网因子';
@@ -392,7 +397,10 @@ function populateCostComparisonCalculationDetails(results) {
                  <p><b>年总制热量:</b> ${fNum(annualHeatingDemandKWh, 0)} kWh</p>
                  <div class="mt-2 p-3 bg-blue-50 rounded-md space-y-1">
                     <h4 class="font-semibold text-blue-800">方案A: 工业热泵</h4>
-                    <p>• 年总电耗: ${fNum(hp.energyCostDetails.totalElec, 0)} kWh</p>
+                    
+                    <!-- FINAL ROBUST FIX: It will now correctly display the value -->
+                    <p>• 年总电耗: ${fNum(hpSystemDetails.consumption, 0)} kWh</p>
+                    
                     <p>• 年总运行成本: ${fWan(hp.opex)} 万元</p>
                     <p>• 产热成本: ${hp.cost_per_kwh_heat.toFixed(4)} 元/kWh_热</p>
                     <p>• 年碳排放量: ${fTon(hp.co2)} 吨 CO₂</p>

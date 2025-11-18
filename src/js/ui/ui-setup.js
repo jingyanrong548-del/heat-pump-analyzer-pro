@@ -1,4 +1,4 @@
-// ui-setup.js (FIXED VERSION)
+// ui-setup.js (V13.0 - UPDATED VERSION)
 import { fuelData, converters, MJ_PER_KCAL } from '../config.js';
 
 // --- 模块内部状态 ---
@@ -56,43 +56,51 @@ function setupUnitConverters() {
     }
 }
 
+
+// V13.0 新增: 对比基准关联项动态显隐功能
+// =================================================================
 /**
- * 设置 "方案 B (对比基准)" 的勾选框切换逻辑
+ * 设置对比基准复选框的事件监听器。
+ * 当勾选或取消勾选某个能源时，会动态显示或隐藏整个应用中所有与之相关的输入项。
+ * 这个新版本将完全替换旧的 opacity/disabled 逻辑。
  */
 function setupComparisonToggles() {
+    // 1. 获取所有的对比复选框元素
     const toggles = document.querySelectorAll('.comparison-toggle');
-    
-    toggles.forEach(toggle => {
+
+    /**
+     * 根据单个复选框的当前状态，更新其关联元素的可视性。
+     * @param {HTMLInputElement} toggle - 复选框元素
+     */
+    const updateVisibility = (toggle) => {
+        // 从 data-target 属性获取能源标识 (例如: "gas", "coal")
         const target = toggle.dataset.target;
-        
-        const capexInput = document.getElementById(target === 'steam' ? 'steamCapex' : `${target}BoilerCapex`);
-        const salvageInput = document.getElementById(`${target}SalvageRate`);
-        
-        // Find all related elements for hiding/showing
-        const relatedElementsContainer = toggle.closest('div.grid > div'); // Find the parent div in the grid
-        
-        const otherRelatedFields = document.querySelectorAll(`.${target}-related`);
-        const relatedOpexField = document.querySelector(`.${target}-opex-related`);
+        if (!target) return;
 
-        const applyToggleState = (isChecked) => {
-            if (capexInput) capexInput.disabled = !isChecked;
-            if (salvageInput) salvageInput.disabled = !isChecked;
-            if (relatedElementsContainer) relatedElementsContainer.classList.toggle('opacity-50', !isChecked);
-            
-            otherRelatedFields.forEach(el => {
-                el.classList.toggle('hidden', !isChecked);
-            });
-            
-            if (relatedOpexField) {
-                relatedOpexField.classList.toggle('hidden', !isChecked);
+        // 检查复选框是否被选中
+        const isChecked = toggle.checked;
+        
+        // 查找所有带有 'related-to-...' 类的关联元素
+        // 这是与 V13.0 的 index.html 紧密配合的关键
+        const relatedElements = document.querySelectorAll(`.related-to-${target}`);
+
+        // 遍历所有关联元素，根据复选框状态添加或移除 'hidden' 类
+        relatedElements.forEach(el => {
+            if (isChecked) {
+                el.classList.remove('hidden'); // 勾选时，移除 hidden 类 (显示)
+            } else {
+                el.classList.add('hidden');    // 取消勾选时，添加 hidden 类 (隐藏)
             }
-        };
-
-        toggle.addEventListener('change', () => {
-            applyToggleState(toggle.checked);
         });
+    };
 
-        applyToggleState(toggle.checked);
+    // 2. 为每个复选框设置初始状态并绑定事件
+    toggles.forEach(toggle => {
+        // a. 页面加载时，立即根据默认勾选状态执行一次，以确保初始界面正确
+        updateVisibility(toggle);
+
+        // b. 添加 'change' 事件监听器，以便在用户操作时触发更新
+        toggle.addEventListener('change', () => updateVisibility(toggle));
     });
 }
 
@@ -220,11 +228,7 @@ function setupCalculationModeToggle(markResultsAsStale) {
     const modeBContainer = document.getElementById('calcModeBContainer');
     const modeCContainer = document.getElementById('calcModeCContainer');
     
-    // --- FIX START ---
-    // The old selector `.closest('.input-group > div')` is broken.
-    // The new selector `parentElement` is robust and correct for the new grid layout.
     const operatingHoursContainer = document.getElementById('operatingHours')?.parentElement;
-    // --- FIX END ---
 
     if (!modeAContainer || !modeBContainer || !modeCContainer || !operatingHoursContainer || calcModeRadios.length === 0) {
         console.error("年加热量计算模式的 UI 元素未完全找到。");
@@ -261,9 +265,6 @@ function setupCalculationModeToggle(markResultsAsStale) {
     applyCalcMode();
 }
 
-// ... (The rest of the file remains the same, no other critical errors found in this file) ...
-// The following functions (addNewPriceTier, setupPriceTierControls, etc.) seem fine as they generate their own HTML and selectors.
-// I will include the full file content just in case.
 
 function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, showGlobalNotification) {
     const container = document.getElementById('priceTiersContainer');
@@ -421,7 +422,7 @@ function setupFuelTypeSelector() {
 
 export function initializeInputSetup(markResultsAsStale, showGlobalNotification) {
     setupUnitConverters();
-    setupComparisonToggles();
+    setupComparisonToggles(); // This now calls the new V13.0 function
     setupGreenElectricityToggle();
     setupFuelTypeSelector();
     setupPriceTierControls(markResultsAsStale, showGlobalNotification); 

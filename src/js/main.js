@@ -1,4 +1,4 @@
-// main.js (FIXED VERSION)
+// main.js (V13.0 - DEBUG VERSION)
 import '../css/style.css';
 import { initializeInputSetup, readAllInputs } from './ui/ui-setup.js';
 import { initializeScenarioControls, saveHpScenario } from './ui/ui-scenario.js';
@@ -29,6 +29,12 @@ function onCalculateClick() {
     }
 
     const results = runAnalysis(inputs);
+    
+    // =================================================================
+    // DEBUGGING CODE: 检查计算核心生成的原始 results 对象
+    // =================================================================
+    console.log('--- [Debug] 计算刚刚完成，生成的完整 results 对象是: ---', results);
+    // =================================================================
     
     detailedCalculations = results;
     resultsAreShown = true;
@@ -120,20 +126,16 @@ document.addEventListener('DOMContentLoaded', () => {
         uiRenderer.showGlobalNotification
     );
     
-    // --- FIX START ---
-    // Added a null check for the main calculate button.
     const calculateBtn = document.getElementById('calculateBtn');
     if (calculateBtn) {
         calculateBtn.addEventListener('click', onCalculateClick);
     } else {
         console.error("FATAL: Main 'calculateBtn' not found. Application cannot start.");
-        // Optionally, display an error message to the user on the page itself.
         const appContainer = document.querySelector('.container');
         if (appContainer) {
             appContainer.innerHTML = '<div class="text-center p-8 bg-red-100 text-red-700 rounded-lg"><strong>严重错误:</strong> 无法找到核心计算按钮。页面无法正常工作。</div>';
         }
     }
-    // --- FIX END ---
     
     uiRenderer.initializeModalControls();
 });
