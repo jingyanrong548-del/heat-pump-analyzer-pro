@@ -49,6 +49,7 @@ export function updateWizardUI(currentStep, totalSteps) {
         calculateBtn.classList.toggle('hidden', currentStep !== totalSteps);
     }
 
+    // 这里只控制按钮的显示/隐藏，不负责绑定点击事件
     if (resetBtn) {
         resetBtn.classList.toggle('hidden', currentStep > 3);
     }
@@ -76,45 +77,8 @@ export function initializeWizard(onNext, onPrev) {
     prevStepBtn.addEventListener('click', onPrev);
 }
 
-/**
- * 初始化“恢复默认参数”按钮
- * @param {Function} showGlobalNotification - 用于显示全局通知的回调函数
- */
-function initializeResetButton(showGlobalNotification) {
-    if (!resetBtn) {
-        console.warn('Reset button (#btn-reset-params) not found.');
-        return;
-    }
-
-    resetBtn.addEventListener('click', () => {
-        console.log('Restoring parameters to default values...');
-
-        for (const elementId in defaultParameters) {
-            if (Object.prototype.hasOwnProperty.call(defaultParameters, elementId)) {
-                const element = document.getElementById(elementId);
-                
-                if (element) {
-                    const defaultValue = defaultParameters[elementId];
-                    if (element.type === 'checkbox' || element.type === 'radio') {
-                        element.checked = defaultValue;
-                    } else {
-                        element.value = defaultValue;
-                    }
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
-        }
-        
-        clearAllErrors();
-
-        if (showGlobalNotification) {
-            showGlobalNotification('所有参数已成功恢复为默认值。', 'success');
-        } else {
-            alert('所有参数已成功恢复为默认值。');
-        }
-    });
-}
+// [已删除] initializeResetButton 函数
+// 该功能已移交至 main.js 统一管理，避免逻辑冲突和控制台警告。
 
 function setupUnitConverters() {
     converters.forEach(c => {
@@ -498,7 +462,8 @@ export function initializeAllUI(markResultsAsStale, showGlobalNotification) {
     setupPriceTierControls(markResultsAsStale, showGlobalNotification); 
     setupModeSelector(markResultsAsStale, showGlobalNotification);
     setupCalculationModeToggle(markResultsAsStale);
-    initializeResetButton(showGlobalNotification);
+    
+    // [已删除] initializeResetButton 调用
 
     const inputsToValidate = document.querySelectorAll('[data-validation]');
     inputsToValidate.forEach(input => {

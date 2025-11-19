@@ -1,29 +1,31 @@
-// src/js/ui/ui-renderer.js (V13.0 - FINAL ROBUST FIX & FULL EXPORTS)
+// src/js/ui/ui-renderer.js (V15.5 - BUG FIXED)
+
 import { fWan, fTon, fCop, fPercent, fYears, fNum, fInt, fYuan, fInvest } from '../core/utils.js';
+import { renderCharts } from './ui-chart.js';
 
 let notifierTimeout = null;
 
-// **** EXPORT ADDED ****
+// --- 基础 UI 工具函数 ---
 export function showGlobalNotification(message, type = 'info', duration = 3000) {
     const notifier = document.getElementById('global-notifier');
     const notifierText = document.getElementById('global-notifier-text');
     const iconSuccess = document.getElementById('global-notifier-icon-success');
     const iconError = document.getElementById('global-notifier-icon-error');
-    if (!notifier || !notifierText || !iconSuccess || !iconError) return;
+    if (!notifier || !notifierText) return;
     if (notifierTimeout) clearTimeout(notifierTimeout);
     notifierText.textContent = message;
     notifier.className = 'fixed top-5 right-5 z-50 max-w-sm p-4 rounded-lg shadow-lg flex items-center transition-opacity transition-transform duration-300';
-    iconSuccess.classList.add('hidden');
-    iconError.classList.add('hidden');
+    if (iconSuccess) iconSuccess.classList.add('hidden');
+    if (iconError) iconError.classList.add('hidden');
     if (type === 'success') {
         notifier.classList.add('bg-green-100', 'text-green-800');
-        iconSuccess.classList.remove('hidden');
+        if (iconSuccess) iconSuccess.classList.remove('hidden');
     } else if (type === 'error') {
         notifier.classList.add('bg-red-100', 'text-red-800');
-        iconError.classList.remove('hidden');
+        if (iconError) iconError.classList.remove('hidden');
     } else {
         notifier.classList.add('bg-blue-100', 'text-blue-800');
-        iconSuccess.classList.remove('hidden');
+        if (iconSuccess) iconSuccess.classList.remove('hidden');
     }
     notifier.classList.remove('hidden', 'opacity-0', 'translate-x-full');
     notifierTimeout = setTimeout(() => {
@@ -34,7 +36,6 @@ export function showGlobalNotification(message, type = 'info', duration = 3000) 
 
 let modalResolve = null;
 
-// **** EXPORT ADDED ****
 export function showConfirmModal(title, body) {
     const modal = document.getElementById('confirm-modal');
     const modalTitle = document.getElementById('confirm-modal-title');
@@ -46,7 +47,6 @@ export function showConfirmModal(title, body) {
     return new Promise((resolve) => { modalResolve = resolve; });
 }
 
-// **** EXPORT ADDED ****
 export function initializeModalControls() {
     const modal = document.getElementById('confirm-modal');
     const confirmBtn = document.getElementById('confirm-modal-ok-btn');
@@ -63,13 +63,11 @@ export function initializeModalControls() {
     cancelBtn.addEventListener('click', () => closeModal(false));
 }
 
-// **** RENAMED and EXPORTED ****
 export function showStaleNotice(show) {
     document.getElementById('stale-results-notice')?.classList.toggle('hidden', !show);
     document.getElementById('results-container')?.classList.toggle('opacity-50', show);
 }
 
-// **** This function is now EXPORTED ****
 export function setSaveButtonState(state, text = '暂存当前工业热泵方案 (请先计算)') {
     const saveBtn = document.getElementById('saveScenarioBtn');
     const scenarioToggle = document.getElementById('enableScenarioComparison');
@@ -92,7 +90,6 @@ export function setSaveButtonState(state, text = '暂存当前工业热泵方案
     }
 }
 
-// **** EXPORT ADDED ****
 export function showPriceTierError(message) {
     const priceTierErrorDiv = document.getElementById('priceTierError');
     if (!priceTierErrorDiv) return;
@@ -104,20 +101,22 @@ export function showPriceTierError(message) {
     }
 }
 
-// **** This private helper is kept as is ****
 function showResults(show) {
      document.getElementById('results-placeholder')?.classList.toggle('hidden', show);
      document.getElementById('results-content')?.classList.toggle('hidden', !show);
 }
 
-// **** NEW, EXPORTED FUNCTION for main.js ****
 export function clearResults() {
     showResults(false);
     const resultsContent = document.getElementById('results-content');
-    if(resultsContent) resultsContent.innerHTML = '';
+    const textContainer = document.getElementById('text-results-container');
+    if (textContainer) {
+        textContainer.innerHTML = '';
+    } else if(resultsContent) {
+        resultsContent.innerHTML = '';
+    }
 }
 
-// **** NEW, EXPORTED FUNCTION for main.js ****
 export function renderError(message, containerId = 'results-content') {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -127,9 +126,35 @@ export function renderError(message, containerId = 'results-content') {
     }
 }
 
-// **** EXPORT ADDED ****
-export function renderResults(results) {
-    showResults(true); // Toggle visibility first
+// --- 核心渲染逻辑 ---
+export function renderResults(results, inputs) {
+    const resultsContent = document.getElementById('results-content');
+    if (!resultsContent) return;
+
+    // 1. 自动修复 HTML 结构
+    if (!document.getElementById('text-results-container')) {
+        console.warn("检测到旧的 HTML 结构，正在自动注入图表容器...");
+        resultsContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">年度能源与运维成本对比 (万元)</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="costComparisonChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">工业热泵全寿命周期成本(LCC)构成</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="lccBreakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="text-results-container"></div>
+        `;
+    }
+
+    showResults(true);
+    
     const { analysisMode } = results;
     if (analysisMode === 'bot') {
         renderBotResults(results);
@@ -137,28 +162,36 @@ export function renderResults(results) {
         renderCostComparisonResults(results);
     }
 
-    // Attach event listeners for details/risk/print after content is rendered
-    document.getElementById('toggle-details-btn')?.addEventListener('click', (e) => {
-        document.getElementById('calculation-details').classList.toggle('hidden');
-        e.target.textContent = e.target.textContent.includes('显示') ? '隐藏详细计算过程' : '显示详细计算过程 (含公式)';
-    });
-    document.getElementById('toggle-risk-btn')?.addEventListener('click', (e) => {
-        document.getElementById('risk-analysis-details').classList.toggle('hidden');
-        e.target.textContent = e.target.textContent.includes('显示') ? '隐藏投资风险及对策分析' : '显示投资风险及对策分析';
-    });
-    document.getElementById('printReportBtn')?.addEventListener('click', () => {
-        buildPrintReport(results);
-        window.print();
-    });
+    // 重新绑定事件
+    setTimeout(() => {
+        document.getElementById('toggle-details-btn')?.addEventListener('click', (e) => {
+            document.getElementById('calculation-details').classList.toggle('hidden');
+            e.target.textContent = e.target.textContent.includes('显示') ? '隐藏详细计算过程' : '显示详细计算过程 (含公式)';
+        });
+        document.getElementById('toggle-risk-btn')?.addEventListener('click', (e) => {
+            document.getElementById('risk-analysis-details').classList.toggle('hidden');
+            e.target.textContent = e.target.textContent.includes('显示') ? '隐藏投资风险及对策分析' : '显示投资风险及对策分析';
+        });
+        document.getElementById('printReportBtn')?.addEventListener('click', () => {
+            buildPrintReport(results);
+            // 延时打印，确保图片加载完毕
+            setTimeout(() => window.print(), 500);
+        });
+    }, 0);
 
     populateCalculationDetails(results);
     populateRiskAnalysisDetails(analysisMode);
+
+    // 渲染图表
+    if (analysisMode !== 'bot' && document.getElementById('costComparisonChart')) {
+        renderCharts(results, inputs);
+    }
 }
 
 function renderBotResults(results) {
-    const resultsContent = document.getElementById('results-content');
-    if (!resultsContent) return;
-    resultsContent.innerHTML = `<div class="p-6">BOT 模式结果渲染区</div>`;
+    const textContainer = document.getElementById('text-results-container');
+    if (!textContainer) return;
+    textContainer.innerHTML = `<div class="p-6">BOT 模式结果渲染区 (开发中...)</div>`;
 }
 
 function renderCostComparisonResults(results) {
@@ -167,8 +200,8 @@ function renderCostComparisonResults(results) {
     const lccYears = lccParams.lccYears;
     const discountRate = lccParams.discountRate;
 
-    const resultsContent = document.getElementById('results-content');
-    if (!resultsContent) return;
+    const textContainer = document.getElementById('text-results-container');
+    if (!textContainer) return;
 
     const resultsTitle = document.getElementById('results-title');
     if(resultsTitle) resultsTitle.textContent = `静态、ROI 与 LCC (${lccYears}年) 对比分析结果`;
@@ -326,13 +359,18 @@ function renderCostComparisonResults(results) {
     `;
 
     html += buttonsHTML;
-    resultsContent.innerHTML = html;
+    
+    textContainer.innerHTML = html;
+    
+    // [修复点] 在使用 resultsContent 前重新获取它
+    const resultsContent = document.getElementById('results-content');
+    if(resultsContent) {
+         resultsContent.classList.remove('hidden');
+         resultsContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
-// **** EXPORT ADDED ****
 export function populateCalculationDetails(results) {
-    console.log('--- [Debug] 正在渲染详细过程，收到的 results 对象是: ---', results);
-    
     const detailsContainer = document.getElementById('calculation-details');
     if (!detailsContainer) return;
     
@@ -343,7 +381,6 @@ export function populateCalculationDetails(results) {
     }
 }
 
-// **** EXPORT ADDED ****
 export function populateRiskAnalysisDetails(analysisMode) {
     const riskContainer = document.getElementById('risk-analysis-details');
     if (!riskContainer) return;
@@ -385,7 +422,6 @@ export function populateRiskAnalysisDetails(analysisMode) {
     riskContainer.innerHTML = riskHTML;
 }
 
-// **** EXPORT ADDED ****
 export function buildPrintReport(results) {
     const printContainer = document.getElementById('print-report-container');
     if (!printContainer) return;
@@ -394,11 +430,21 @@ export function buildPrintReport(results) {
     const projectName = inputs.projectName || "未命名项目";
     const reportDate = new Date().toLocaleString('zh-CN');
     
+    const chart1Data = document.getElementById('costComparisonChart')?.toDataURL('image/png');
+    const chart2Data = document.getElementById('lccBreakdownChart')?.toDataURL('image/png');
+
     let reportHTML = `
         <div class="print-header">
             <h2>${projectName} 项目</h2>
             <h1>工业热泵经济与环境效益分析报告</h1>
             <p>报告日期: ${reportDate}</p>
+        </div>
+        <div class="print-section">
+             <h3>核心数据图表</h3>
+             <div class="print-charts-row">
+                ${chart1Data ? `<img src="${chart1Data}" class="print-chart-img" alt="成本对比图">` : ''}
+                ${chart2Data ? `<img src="${chart2Data}" class="print-chart-img" alt="LCC构成图">` : ''}
+             </div>
         </div>
         <div class="print-section">
             <h3>1. 核心输入参数</h3>

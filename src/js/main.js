@@ -1,3 +1,4 @@
+import '../css/style.css';
 // src/js/main.js
 
 // --- 模块导入 ---
