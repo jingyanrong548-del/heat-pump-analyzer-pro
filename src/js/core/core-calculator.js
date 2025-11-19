@@ -1,14 +1,13 @@
-// core-calculator.js (V13.0 - FINAL FIX)
+// src/js/core/core-calculator.js
+
 import { calculateNPV, calculateCashFlowNPV, findIRR, calculateDynamicPBP } from './utils.js';
 
-// --- V11.0: 主计算路由 ---
-
 /**
- * 运行核心分析 (V11.0 路由)
+ * 主计算函数 (原 runAnalysis)
  * @param {object} inputs - 从 ui-setup.js 读取的完整输入对象
  * @returns {object} 包含所有计算结果的 results 对象
  */
-export function runAnalysis(inputs) {
+export function calculate(inputs) {
     const { analysisMode } = inputs;
     
     // 1. (所有模式通用) 计算基础数据
@@ -23,7 +22,6 @@ export function runAnalysis(inputs) {
 
     // 2. 根据模式路由到不同的分析函数
     if (analysisMode === 'bot') {
-        // --- V11.0: BOT 盈利模式分析 ---
         return runBotFinancialAnalysis(
             inputs, 
             lccParams, 
@@ -31,8 +29,6 @@ export function runAnalysis(inputs) {
             inputs.botAnnualOpexCost
         );
     } else {
-        // --- V10.0: 成本对比模式分析 ---
-        
         const totalHpElec_FullLoad = (inputs.hpCop > 0) ? (annualHeatingDemandKWh / inputs.hpCop) : 0;
         let hpEnergyCost_FullLoad = 0;
         const hpEnergyCostDetails_FullLoad = { tiers: [] };
@@ -60,7 +56,6 @@ export function runAnalysis(inputs) {
 }
 
 
-// --- V11.0: 模式三 (BOT 盈利分析) ---
 function runBotFinancialAnalysis(inputs, lccParams, botEnergyCost_Year1, botOpexCost_Year1) {
     const { lccYears, discountRate, energyInflationRate, opexInflationRate } = lccParams;
     
@@ -148,8 +143,6 @@ function runBotFinancialAnalysis(inputs, lccParams, botEnergyCost_Year1, botOpex
     };
 }
 
-
-// --- V11.0: 模式一/二 (成本对比分析) ---
 function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEnergyCost_FullLoad, hpEnergyCostDetails_FullLoad, annualHeatingDemandKWh, analysisMode, totalHpElec_FullLoad) {
     
     const results = {};
@@ -167,7 +160,6 @@ function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEn
     const hpTotalCapex = inputs.hpHostCapex + inputs.hpStorageCapex;
 
     if (isHybridMode) {
-        // --- HYBRID MODE LOGIC ---
         const { hybridLoadShare, hybridAuxHeaterType, hybridAuxHeaterCapex, hybridAuxHeaterOpex } = inputs;
         results.hybridInputs = { hybridLoadShare, hybridAuxHeaterType, hybridAuxHeaterCapex, hybridAuxHeaterOpex };
         
@@ -228,7 +220,6 @@ function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEn
         hpSystemDetails = hybridSystem;
 
     } else {
-        // --- STANDARD MODE LOGIC ---
         const hpOpex_Year1 = hpEnergyCost_FullLoad + inputs.hpOpexCost;
         const hpCo2 = totalHpElec_FullLoad * gridFactor; 
         
@@ -244,12 +235,8 @@ function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEn
         const hpDetails = {
             isHybrid: false,
             name: "工业热泵系统",
-            // =================================================================
-            // FINAL BUG FIX: Add the missing 'consumption' property
-            // =================================================================
             consumption: totalHpElec_FullLoad,
             consumptionUnit: 'kWh',
-            // =================================================================
             energyCost: hpEnergyCost_FullLoad, energyCostDetails: hpEnergyCostDetails_FullLoad,
             opexCost: inputs.hpOpexCost, opex: hpOpex_Year1, co2: hpCo2,
             cost_per_kwh_heat: (inputs.hpCop > 0) ? (weightedAvgElecPrice / inputs.hpCop) : 0, 
@@ -266,7 +253,6 @@ function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEn
         hpSystemDetails = hpDetails;
     }
 
-    // --- COMPARE WITH BASELINES ---
     const comparisons = [];
     
     if (inputs.compare.gas) comparisons.push(calculateBoilerDetails('gas', annualHeatingDemandKWh, inputs.gasBoilerCapex, inputs.gasOpexCost, lccParams, inputs, gridFactor, weightedAvgElecPrice));
@@ -276,10 +262,8 @@ function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEn
     if (inputs.compare.electric) comparisons.push(calculateBoilerDetails('electric', annualHeatingDemandKWh, inputs.electricBoilerCapex, inputs.electricOpexCost, lccParams, inputs, gridFactor, weightedAvgElecPrice));
     if (inputs.compare.steam) comparisons.push(calculateBoilerDetails('steam', annualHeatingDemandKWh, inputs.steamCapex, inputs.steamOpexCost, lccParams, inputs, gridFactor, weightedAvgElecPrice));
     
-    // Store raw boiler data in results
     comparisons.forEach(boiler => { results[boiler.key] = boiler; });
 
-    // --- CALCULATE ROI METRICS ---
     results.comparisons = comparisons.map(boiler => {
         const energyCostSaving = boiler.energyCost - hpSystemDetails.energyCost;
         let energyCostSavingRate = (boiler.energyCost > 0) ? (energyCostSaving / boiler.energyCost) : (hpSystemDetails.energyCost <= 0 ? 0 : -Infinity);
@@ -332,10 +316,6 @@ function runCostComparisonAnalysis(inputs, lccParams, weightedAvgElecPrice, hpEn
     return results;
 }
 
-
-/**
- * 辅助函数：计算各种锅炉的详细成本
- */
 function calculateBoilerDetails(boilerKey, heatingDemandKWh, capex, opexCost, lccParams, inputs, gridFactor, weightedAvgElecPrice) {
     const { lccYears, discountRate, energyInflationRate, opexInflationRate } = lccParams;
     const annualHeatingDemandMJ = heatingDemandKWh * 3.6;

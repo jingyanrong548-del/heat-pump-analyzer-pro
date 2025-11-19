@@ -1,17 +1,121 @@
-// ui-setup.js (V13.0 - UPDATED VERSION)
-import { fuelData, converters, MJ_PER_KCAL } from '../config.js';
+// src/js/ui/ui-setup.js
+
+// **** PATH CORRECTIONS VERIFIED ****
+import { fuelData, converters, defaultParameters } from '../config.js'; 
+import { validateInput, clearAllErrors } from '../ui-validator.js';
 
 // --- 模块内部状态 ---
-let spfStandardValue = "3.0"; // 模式一 (标准) 的SPF默认值
-let spfHybridValue = "4.0";   // 模式二 (混合) 的SPF默认值
-let spfBotValue = "3.5";      // 模式三 (BOT) 的SPF默认值
-let currentMode = 'standard'; // V11.0: 跟踪当前模式
+let spfStandardValue = "3.0"; 
+let spfHybridValue = "4.0";   
+let spfBotValue = "3.5";      
+let currentMode = 'standard'; 
 
-// --- 私有辅助函数 ---
+// --- Wizard UI 元素引用 ---
+let stepperItems = [];
+let panes = [];
+let prevStepBtn, nextStepBtn, calculateBtn, resetBtn;
 
 /**
- * 设置单位换算下拉框的监听
+ * 更新向导界面的核心函数
+ * @param {number} currentStep - 当前所在的步骤 (1-4)
+ * @param {number} totalSteps - 总步骤数
  */
+export function updateWizardUI(currentStep, totalSteps) {
+    panes.forEach((pane, index) => {
+        pane.classList.toggle('hidden', (index + 1) !== currentStep);
+    });
+
+    stepperItems.forEach((step, index) => {
+        const stepNumber = index + 1;
+        step.classList.remove('step-active', 'step-completed');
+        if (stepNumber < currentStep) {
+            step.classList.add('step-completed');
+        } else if (stepNumber === currentStep) {
+            step.classList.add('step-active');
+        }
+    });
+
+    if (prevStepBtn) {
+        prevStepBtn.disabled = currentStep === 1;
+        prevStepBtn.classList.toggle('cursor-not-allowed', currentStep === 1);
+        prevStepBtn.classList.toggle('opacity-50', currentStep === 1);
+    }
+    
+    if (nextStepBtn) {
+        nextStepBtn.classList.toggle('hidden', currentStep === totalSteps);
+    }
+    
+    if (calculateBtn) {
+        calculateBtn.classList.toggle('hidden', currentStep !== totalSteps);
+    }
+
+    if (resetBtn) {
+        resetBtn.classList.toggle('hidden', currentStep > 3);
+    }
+}
+
+/**
+ * 初始化向导的函数
+ * @param {Function} onNext - "下一步"按钮的回调
+ * @param {Function} onPrev - "上一步"按钮的回调
+ */
+export function initializeWizard(onNext, onPrev) {
+    stepperItems = Array.from(document.querySelectorAll('.stepper .step'));
+    panes = Array.from(document.querySelectorAll('.wizard-pane'));
+    prevStepBtn = document.getElementById('prevStepBtn');
+    nextStepBtn = document.getElementById('nextStepBtn');
+    calculateBtn = document.getElementById('calculateBtn');
+    resetBtn = document.getElementById('btn-reset-params');
+
+    if (!prevStepBtn || !nextStepBtn || stepperItems.length === 0 || panes.length === 0) {
+        console.error("Wizard UI elements not found. Navigation will not work.");
+        return;
+    }
+
+    nextStepBtn.addEventListener('click', onNext);
+    prevStepBtn.addEventListener('click', onPrev);
+}
+
+/**
+ * 初始化“恢复默认参数”按钮
+ * @param {Function} showGlobalNotification - 用于显示全局通知的回调函数
+ */
+function initializeResetButton(showGlobalNotification) {
+    if (!resetBtn) {
+        console.warn('Reset button (#btn-reset-params) not found.');
+        return;
+    }
+
+    resetBtn.addEventListener('click', () => {
+        console.log('Restoring parameters to default values...');
+
+        for (const elementId in defaultParameters) {
+            if (Object.prototype.hasOwnProperty.call(defaultParameters, elementId)) {
+                const element = document.getElementById(elementId);
+                
+                if (element) {
+                    const defaultValue = defaultParameters[elementId];
+                    if (element.type === 'checkbox' || element.type === 'radio') {
+                        element.checked = defaultValue;
+                    } else {
+                        element.value = defaultValue;
+                    }
+                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+        
+        clearAllErrors();
+
+        if (showGlobalNotification) {
+            showGlobalNotification('所有参数已成功恢复为默认值。', 'success');
+        } else {
+            alert('所有参数已成功恢复为默认值。');
+        }
+    });
+}
+
 function setupUnitConverters() {
     converters.forEach(c => {
         const select = document.getElementById(c.selectId);
@@ -56,54 +160,22 @@ function setupUnitConverters() {
     }
 }
 
-
-// V13.0 新增: 对比基准关联项动态显隐功能
-// =================================================================
-/**
- * 设置对比基准复选框的事件监听器。
- * 当勾选或取消勾选某个能源时，会动态显示或隐藏整个应用中所有与之相关的输入项。
- * 这个新版本将完全替换旧的 opacity/disabled 逻辑。
- */
 function setupComparisonToggles() {
-    // 1. 获取所有的对比复选框元素
     const toggles = document.querySelectorAll('.comparison-toggle');
-
-    /**
-     * 根据单个复选框的当前状态，更新其关联元素的可视性。
-     * @param {HTMLInputElement} toggle - 复选框元素
-     */
-    const updateVisibility = (toggle) => {
-        // 从 data-target 属性获取能源标识 (例如: "gas", "coal")
+    const updateRelatedElementStyles = (toggle) => {
         const target = toggle.dataset.target;
         if (!target) return;
-
-        // 检查复选框是否被选中
         const isChecked = toggle.checked;
-        
-        // 查找所有带有 'related-to-...' 类的关联元素
-        // 这是与 V13.0 的 index.html 紧密配合的关键
         const relatedElements = document.querySelectorAll(`.related-to-${target}`);
-
-        // 遍历所有关联元素，根据复选框状态添加或移除 'hidden' 类
         relatedElements.forEach(el => {
-            if (isChecked) {
-                el.classList.remove('hidden'); // 勾选时，移除 hidden 类 (显示)
-            } else {
-                el.classList.add('hidden');    // 取消勾选时，添加 hidden 类 (隐藏)
-            }
+            el.classList.toggle('comparison-inactive', !isChecked);
         });
     };
-
-    // 2. 为每个复选框设置初始状态并绑定事件
     toggles.forEach(toggle => {
-        // a. 页面加载时，立即根据默认勾选状态执行一次，以确保初始界面正确
-        updateVisibility(toggle);
-
-        // b. 添加 'change' 事件监听器，以便在用户操作时触发更新
-        toggle.addEventListener('change', () => updateVisibility(toggle));
+        updateRelatedElementStyles(toggle);
+        toggle.addEventListener('change', () => updateRelatedElementStyles(toggle));
     });
 }
-
 
 function setupModeSelector(markResultsAsStale, showGlobalNotification) {
     const modeStandard = document.getElementById('modeStandard');
@@ -113,7 +185,7 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
     const hybridConfigInputs = document.getElementById('hybridConfigInputs'); 
     const botConfigInputs = document.getElementById('botConfigInputs');
     const comparisonTogglesContainer = document.getElementById('comparisonTogglesContainer');
-    const standardModeSections = document.getElementById('standardModeSections');
+    const standardModeSections = document.getElementById('standardModeSections'); 
     const lccParamsContainer = document.getElementById('lccParamsContainer');
     
     const hpCopLabel = document.getElementById('hpCopLabel');
@@ -135,20 +207,16 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
     const applyModeState = (newMode) => {
         const currentValue = hpCopInput.value;
         
-        if (currentMode === 'standard') {
-            spfStandardValue = currentValue;
-        } else if (currentMode === 'hybrid') {
-            spfHybridValue = currentValue;
-        } else if (currentMode === 'bot') {
-            spfBotValue = currentValue;
-        }
+        if (currentMode === 'standard') spfStandardValue = currentValue;
+        else if (currentMode === 'hybrid') spfHybridValue = currentValue;
+        else if (currentMode === 'bot') spfBotValue = currentValue;
 
         if (newMode === 'standard' || newMode === 'hybrid') {
             hybridConfigInputs.classList.toggle('hidden', newMode === 'standard');
             botConfigInputs.classList.add('hidden');
             comparisonTogglesContainer.classList.remove('hidden');
-            standardModeSections.classList.remove('hidden');
-            lccParamsContainer.classList.remove('hidden');
+            standardModeSections.classList.remove('hidden'); 
+            lccParamsContainer.classList.remove('hidden'); 
             
             calcModeRadios.forEach(radio => radio.disabled = false);
             const checkedCalcMode = document.querySelector('input[name="calcMode"]:checked');
@@ -171,8 +239,8 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
             hybridConfigInputs.classList.add('hidden');
             botConfigInputs.classList.remove('hidden');
             comparisonTogglesContainer.classList.add('hidden');
-            standardModeSections.classList.add('hidden');
-            lccParamsContainer.classList.remove('hidden');
+            standardModeSections.classList.add('hidden'); 
+            lccParamsContainer.classList.remove('hidden'); 
 
             if (calcModeAContainer) calcModeAContainer.classList.add('hidden');
             if (calcModeBContainer) calcModeBContainer.classList.add('hidden');
@@ -207,20 +275,15 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
             if (showGlobalNotification) {
                 showGlobalNotification('模式三 (BOT 模式) 正在升级中，暂不开放。', 'info', 4000);
             }
-            if (currentMode === 'standard') {
-                modeStandard.checked = true;
-            } else if (currentMode === 'hybrid') {
-                modeHybrid.checked = true;
-            } else {
-                modeStandard.checked = true;
-            }
+            if (currentMode === 'standard') modeStandard.checked = true;
+            else if (currentMode === 'hybrid') modeHybrid.checked = true;
+            else modeStandard.checked = true;
         }
     });
 
     hpCopInput.value = spfStandardValue; 
     applyModeState('standard');
 }
-
 
 function setupCalculationModeToggle(markResultsAsStale) {
     const calcModeRadios = document.querySelectorAll('input[name="calcMode"]');
@@ -237,7 +300,7 @@ function setupCalculationModeToggle(markResultsAsStale) {
 
     const applyCalcMode = () => {
         const selectedRadio = document.querySelector('input[name="calcMode"]:checked');
-        if (!selectedRadio) return; // Exit if no radio is checked
+        if (!selectedRadio) return; 
         const selectedMode = selectedRadio.value;
         
         if (selectedMode === 'annual') {
@@ -265,7 +328,6 @@ function setupCalculationModeToggle(markResultsAsStale) {
     applyCalcMode();
 }
 
-
 function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, showGlobalNotification) {
     const container = document.getElementById('priceTiersContainer');
     if (!container) {
@@ -285,11 +347,13 @@ function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, s
         </div>
         <div class="md:col-span-3">
             <label for="${tierId}-price" class="block text-xs font-medium text-gray-600 mb-1">电价 (元/kWh)</label>
-            <input type="number" id="${tierId}-price" value="${price}" placeholder="例如: 1.2" class="tier-price w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field">
+            <input type="number" id="${tierId}-price" value="${price}" placeholder="例如: 1.2" class="tier-price w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field" data-validation="isPositive">
+            <div class="error-message hidden"></div>
         </div>
         <div class="md:col-span-3">
             <label for="${tierId}-dist" class="block text-xs font-medium text-gray-600 mb-1">运行比例 (%)</label>
-            <input type="number" id="${tierId}-dist" value="${dist}" placeholder="例如: 40" class="tier-dist w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field">
+            <input type="number" id="${tierId}-dist" value="${dist}" placeholder="例如: 40" class="tier-dist w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field" data-validation="isPercentage">
+            <div class="error-message hidden"></div>
         </div>
         <div class="md:col-span-1 flex items-end h-full">
             <button class="removePriceTierBtn w-full text-sm bg-red-100 text-red-700 font-semibold py-2 px-3 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-300 mt-5 md:mt-0">
@@ -299,6 +363,12 @@ function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, s
     `;
 
     container.appendChild(newTier);
+    
+    newTier.querySelectorAll('[data-validation]').forEach(input => {
+        input.addEventListener('input', () => validateInput(input));
+        input.addEventListener('blur', () => validateInput(input)); 
+    });
+    
 
     newTier.querySelectorAll('input.track-change').forEach(input => {
         input.dataset.defaultValue = input.value;
@@ -419,16 +489,23 @@ function setupFuelTypeSelector() {
     });
 }
 
-
-export function initializeInputSetup(markResultsAsStale, showGlobalNotification) {
+// 主的UI初始化函数
+export function initializeAllUI(markResultsAsStale, showGlobalNotification) {
     setupUnitConverters();
-    setupComparisonToggles(); // This now calls the new V13.0 function
+    setupComparisonToggles();
     setupGreenElectricityToggle();
     setupFuelTypeSelector();
     setupPriceTierControls(markResultsAsStale, showGlobalNotification); 
     setupModeSelector(markResultsAsStale, showGlobalNotification);
     setupCalculationModeToggle(markResultsAsStale);
+    initializeResetButton(showGlobalNotification);
 
+    const inputsToValidate = document.querySelectorAll('[data-validation]');
+    inputsToValidate.forEach(input => {
+        input.addEventListener('input', () => validateInput(input));
+        input.addEventListener('blur', () => validateInput(input));
+    });
+    
     const allInputs = document.querySelectorAll('input[type="number"], input[type="checkbox"], select, input[type="text"], input[type="radio"]');
     allInputs.forEach(input => {
         let defaultValue;
@@ -459,9 +536,7 @@ export function initializeInputSetup(markResultsAsStale, showGlobalNotification)
                 currentInput.classList.toggle('default-param', currentValue === currentDefaultValue);
             }
 
-            const container = currentInput.parentElement;
             const unitSelect = document.getElementById(currentInput.id + 'Unit');
-
             if (unitSelect && unitSelect.id.includes('Unit')) {
                 const currentVal = parseFloat(currentInput.value);
                 if (isNaN(currentVal)) {
@@ -578,7 +653,7 @@ export function readAllInputs(showErrorCallback, alertNotifier) {
         electricBoilerCapex: parseFloat(document.getElementById('electricBoilerCapex').value) * 10000 || 0,
         electricSalvageRate: (parseFloat(document.getElementById('electricSalvageRate').value) || 0) / 100,
         steamCapex: parseFloat(document.getElementById('steamCapex').value) * 10000 || 0,
-        steamSalvageRate: (parseFloat(document.getElementById('steamSalvageRate').value) || 0) / 100,
+        steamSalvageRate: parseFloat(document.getElementById('steamSalvageRate').value) / 100 || 0,
         hpCop: parseFloat(document.getElementById('hpCop').value) || 0,
         gasBoilerEfficiency: parseFloat(document.getElementById('gasBoilerEfficiency').value) / 100 || 0,
         fuelBoilerEfficiency: parseFloat(document.getElementById('fuelBoilerEfficiency').value) / 100 || 0,
