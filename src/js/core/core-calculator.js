@@ -1,6 +1,9 @@
-// src/js/core/core-calculator.js (V15.8 - Unit Fix & Key Unified)
-import { PMT, NPV } from './utils.js';
+// src/js/core/core-calculator.js (V15.10 - Real Financial Algorithms)
+import { NPV } from './utils.js';
 
+/**
+ * 核心计算函数
+ */
 export function calculate(inputs) {
     const {
         lccYears, discountRate, energyInflationRate, opexInflationRate,
@@ -36,7 +39,7 @@ export function calculate(inputs) {
             type: 'hp',
             name: '工业热泵',
             initialInvestment: hpHostCapex + hpStorageCapex,
-            energyCost: hpEnergyCost, // [修复] 统一键名为 energyCost (原为 annualEnergyCost)
+            energyCost: hpEnergyCost, 
             annualOpex: hpOpexCost,
             opex: hpTotalOpex,
             consumption: hpElecConsumption,
@@ -76,7 +79,7 @@ export function calculate(inputs) {
                  name: '混合系统',
                  type: 'hybrid',
                  opex: hybridTotalOpex,
-                 energyCost: hpHybridEnergyCost + auxResult.energyCost, // [新增] 混合系统的总能源成本
+                 energyCost: hpHybridEnergyCost + auxResult.energyCost,
                  co2: calculateCO2(hpHybridElec, inputs, 'electricity') + auxResult.co2,
                  lcc: hybridLcc,
                  cost_per_steam_ton: hybridTotalOpex / steamTonsPerYear,
@@ -101,22 +104,49 @@ export function calculate(inputs) {
             const opexSaving = result.opex - baseSolution.opex;
             
             result.opexSaving = opexSaving;
-            // 修复：确保读取正确的基准能源成本
             result.energyCostSaving = result.energyCost - baseSolution.energyCost; 
             result.energyCostSavingRate = result.energyCost > 0 ? result.energyCostSaving / result.energyCost : 0;
             
             if (investmentDelta > 0 && opexSaving > 0) {
+                // 静态 ROI & PBP
                 result.simpleROI = opexSaving / investmentDelta;
                 result.paybackPeriod = (investmentDelta / opexSaving).toFixed(1) + " 年";
                 
+                // 构建现金流用于计算高级指标
+                // Year 0: 负的投资差额
                 const cashFlows = [-investmentDelta];
+                
+                // [修复] 动态回收期计算逻辑
+                let cumulativeDiscountedCashFlow = -investmentDelta;
+                let dynamicPaybackYear = null;
+
                 for(let i=1; i<=lccYears; i++) {
-                    const yearSaving = opexSaving * Math.pow(1 + energyInflationRate, i); 
-                    cashFlows.push(yearSaving);
+                    // 考虑能源通胀带来的节省增加 (Nominal Saving)
+                    const nominalSaving = opexSaving * Math.pow(1 + energyInflationRate, i); 
+                    cashFlows.push(nominalSaving);
+
+                    // 计算当年折现后的现金流 (Discounted CF)
+                    const discountedCF = nominalSaving / Math.pow(1 + discountRate, i);
+                    
+                    const prevCumulative = cumulativeDiscountedCashFlow;
+                    cumulativeDiscountedCashFlow += discountedCF;
+
+                    // 如果尚未回本，且当前累计现金流转正，则进行插值计算
+                    if (dynamicPaybackYear === null && cumulativeDiscountedCashFlow >= 0) {
+                        const fraction = Math.abs(prevCumulative) / discountedCF;
+                        dynamicPaybackYear = (i - 1) + fraction;
+                    }
                 }
+
+                // [修复] 真实计算 NPV
                 result.npv = NPV(discountRate, cashFlows);
-                result.irr = 0.15; // 简易示例，真实计算需迭代法
-                result.dynamicPBP = 5.2; 
+                
+                // [修复] 真实计算 IRR (使用二分法迭代)
+                result.irr = calculateIRR(cashFlows);
+                
+                // [修复] 赋值动态回收期
+                result.dynamicPBP = dynamicPaybackYear ? dynamicPaybackYear : null; 
+
             } else {
                 result.simpleROI = null;
                 result.paybackPeriod = "无法计算";
@@ -143,12 +173,41 @@ export function calculate(inputs) {
     };
 }
 
+// --- 内部财务工具函数 ---
+
+/**
+ * 计算内部收益率 (IRR)
+ * 使用二分法逼近，寻找 NPV = 0 时的折现率
+ */
+function calculateIRR(cashFlows, guess = 0.1) {
+    let min = -0.99;
+    let max = 2.0; // 假设最大 IRR 为 200%
+    let iter = 0;
+    
+    while(iter < 100) { // 最多迭代100次防止死循环
+        const mid = (min + max) / 2;
+        let npv = 0;
+        for(let i=0; i<cashFlows.length; i++) {
+            npv += cashFlows[i] / Math.pow(1 + mid, i);
+        }
+        
+        if(Math.abs(npv) < 1) return mid; // 精度满足
+        
+        if(npv > 0) {
+            min = mid; // 利率太低，导致NPV为正，提高下限
+        } else {
+            max = mid; // 利率太高，导致NPV为负，降低上限
+        }
+        iter++;
+    }
+    return (min + max) / 2;
+}
+
 // 辅助函数：计算单个化石能源方案
 function calculateComparison(inputs, type, isAux = false) {
     let efficiency, price, calorific, factor, capex, opexRate, salvage;
     let name = "";
     let unit = "";
-    // 标记是否按吨计价的固体/液体燃料 (需要 /1000 换算)
     let isTonBased = false; 
 
     if (type === 'gas') { 
@@ -173,31 +232,21 @@ function calculateComparison(inputs, type, isAux = false) {
     }
     else if (type === 'steam') { 
         name = '管网蒸汽'; unit = 't'; 
-        // 注意：蒸汽单价本来就是元/吨，消耗量也是吨，所以不需要 isTonBased (除以1000)
         efficiency = inputs.steamEfficiency; price = inputs.steamPrice; calorific = inputs.steamCalorific * 3.6; factor = inputs.steamFactor; capex = inputs.steamCapex; opexRate = inputs.steamOpexCost; salvage = inputs.steamSalvageRate; 
     }
 
-    // 1. 计算需求 (MJ)
     const demandMJ = inputs.annualHeatingDemandKWh * 3.6;
-    
-    // 2. 计算消耗量 (物理单位)
-    // 燃气(m3), 电(kWh), 蒸汽(t) -> 直接除
-    // 油/煤/生物质(kg) -> 直接除 (基于 MJ/kg)
     const consumption = demandMJ / (calorific * efficiency);
     
-    // 3. 计算能源成本 (元)
     let energyCost = 0;
     if (isTonBased) {
-        // [关键修复] 如果是按吨计价(元/t)，但消耗量是(kg)，需要除以 1000
         energyCost = (consumption / 1000) * price; 
     } else {
-        // 电、气、蒸汽直接乘
         energyCost = consumption * price;
     }
 
     const opexCost = isAux ? 0 : opexRate; 
     const totalOpex = energyCost + opexCost;
-    
     const co2 = (consumption * factor) / 1000; 
 
     const lcc = calculateLCC({
@@ -219,7 +268,7 @@ function calculateComparison(inputs, type, isAux = false) {
         consumption,
         consumptionUnit: unit,
         co2,
-        lcc: lcc.total, // 确保返回数值
+        lcc: lcc.total, 
         electricalPriceRatio: (type === 'electric' || type === 'hp') ? 1 : (inputs.priceTiers?.[0]?.price / (price / (calorific/3.6)))
     };
 }
