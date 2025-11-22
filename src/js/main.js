@@ -1,6 +1,6 @@
-// src/js/main.js (V15.6 - Final Memory UI Sync Fix)
+// src/js/main.js (V16.0 - Auto Hide & Fixes)
 
-import '../css/style.css'; // 确保 CSS 被引入
+import '../css/style.css'; 
 import * as config from './config.js'; 
 import * as storage from './storage-manager.js'; 
 import { validateInput, isFormValid } from './ui-validator.js'; 
@@ -14,8 +14,7 @@ import {
     renderResults, 
     clearResults, 
     renderError, 
-    showStaleNotice,
-    initializeScenarioComparison,
+    initializeScenarioComparison, // 确保从 renderer 导入 UI 渲染逻辑
     updateScenarioComparisonUI 
 } from './ui/ui-renderer.js';
 import { calculate } from './core/core-calculator.js';
@@ -59,7 +58,6 @@ function resetToDefaults() {
             } else {
                 element.value = defaultValue;
             }
-            // 触发 change 以恢复 UI 状态（如取消置灰）
             element.dispatchEvent(new Event('change'));
             if(element.type !== 'checkbox' && element.type !== 'radio') {
                  element.dispatchEvent(new Event('input'));
@@ -67,27 +65,34 @@ function resetToDefaults() {
         }
     });
     storage.clearParams();
-    isDirty = true;
-    clearResults();
+    // 重置也算一种“改变”，隐藏结果
+    markResultsAsStale();
     showGlobalNotification('所有参数已恢复默认值，本地记忆已清除。', 'success');
 }
 
+// [核心修改] 参数改变时，直接隐藏结果区域
 function markResultsAsStale() {
-    if (resultsCache) {
-        isDirty = true;
-        showStaleNotice(true);
-        const saveBtn = document.getElementById('saveScenarioBtn');
-        if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.classList.add('cursor-not-allowed');
-            saveBtn.textContent = '暂存当前方案 (请先重新计算)';
-        }
+    isDirty = true;
+    // 直接隐藏结果容器
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer) {
+        resultsContainer.classList.add('hidden');
+    }
+    
+    // 禁用保存按钮
+    const saveBtn = document.getElementById('saveScenarioBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.classList.add('cursor-not-allowed');
+        saveBtn.textContent = '暂存当前方案 (请先重新计算)';
     }
 }
 
 function handleNextStep() {
     if (currentStep === 3 && isDirty && resultsCache) {
-        showGlobalNotification('参数已更改，建议重新计算以获得最新结果。', 'info');
+        // 如果已经隐藏了结果，这里就不需要弹窗提示“结果过时”了，因为用户看不见结果
+        // 但保留通知作为友好提示
+        // showGlobalNotification('参数已更改，请重新计算。', 'info');
     }
     if (currentStep < TOTAL_STEPS) {
         currentStep++;
@@ -116,11 +121,15 @@ function handleCalculate() {
         try {
             console.log("Starting calculation with inputs:", inputs);
             resultsCache = calculate(inputs);
-            // 传入 inputs 以便图表模块使用
+            
+            // 显示结果容器 (因为之前可能被隐藏了)
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) resultsContainer.classList.remove('hidden');
+
             renderResults(resultsCache, inputs);
             
             isDirty = false;
-            showStaleNotice(false);
+            
             const saveBtn = document.getElementById('saveScenarioBtn');
             if (saveBtn && document.getElementById('enableScenarioComparison').checked) {
                 saveBtn.disabled = false;
@@ -163,19 +172,28 @@ function setupScenarioSaving() {
         }
         const projectName = document.getElementById('projectName').value || '未命名方案';
         const scenarioName = `${projectName} #${getScenarios().length + 1}`;
-        const inputs = readAllInputs(() => {}, () => {});
+        
+        // 构造保存的数据快照
+        const hpData = resultsCache.hp;
+        const hybridData = resultsCache.hybridSystem;
+        const activeData = resultsCache.isHybridMode ? hybridData : hpData;
+
         const scenarioData = {
+            id: Date.now(), // 唯一ID
             name: scenarioName,
-            inputs: inputs,
+            mode: resultsCache.isHybridMode ? '混合' : '纯热泵',
             results: {
-                hpLcc: resultsCache.solutions.find(s => s.type === 'hp').totalLcc,
-                hpAnnualCost: resultsCache.solutions.find(s => s.type === 'hp').avgAnnualCost,
-                hpPbp: resultsCache.solutions.find(s => s.type === 'hp').pbp,
-                hpIrr: resultsCache.solutions.find(s => s.type === 'hp').irr,
-                hpCarbonReduction: resultsCache.solutions.find(s => s.type === 'hp').annualCarbonReduction,
+                capex: activeData.initialInvestment,
+                opex: activeData.opex,
+                lcc: activeData.lcc.total,
+                irr: resultsCache.comparisons[0]?.irr || 0, // 取第一个对比项的IRR作为参考，或者可以存null
+                pbp: resultsCache.comparisons[0]?.dynamicPBP || 0,
+                co2: activeData.co2
             }
         };
+        
         addScenario(scenarioData);
+        // 调用 renderer 更新 UI
         updateScenarioComparisonUI(getScenarios(), handleDeleteScenario);
         showGlobalNotification(`方案 "${scenarioName}" 已成功暂存！`, 'success');
     });
@@ -188,35 +206,27 @@ function handleDeleteScenario(scenarioId) {
 }
 
 function main() {
-    console.log('Phoenix Project V15.6 Initializing...');
+    console.log('Phoenix Project V16.0 Initializing...');
     
     initializeAllUI(markResultsAsStale, showGlobalNotification);
     initializeWizard(handleNextStep, handlePrevStep);
 
-    // --- [关键修复] 加载记忆并同步 UI 状态 ---
     const savedParams = storage.loadParams();
     if (savedParams) {
         console.log("发现已保存的参数，正在加载...");
         Object.keys(savedParams).forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                // 1. 恢复值
                 if (element.type === 'checkbox' || element.type === 'radio') {
                     element.checked = savedParams[id];
                 } else {
                     element.value = savedParams[id];
                 }
-                
-                // 2. [新增] 立即触发 change 事件，让 UI (置灰等) 同步状态
-                // 这一步非常关键，否则刷新后虽然没勾选，但界面还是亮色的
                 element.dispatchEvent(new Event('change'));
             }
         });
-    } else {
-        console.log("未发现保存的数据，使用默认值。");
     }
 
-    // 绑定实时保存
     config.ALL_INPUT_IDS.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -246,6 +256,8 @@ function main() {
     
     initializeModal();
     setupScenarioSaving();
+    
+    // 初始化多方案对比 (传递清空的回调)
     initializeScenarioComparison(
         attachConfirmation(
             () => {
@@ -256,9 +268,15 @@ function main() {
             { title: '确认清空所有方案', message: '此操作将永久删除所有已暂存的对比方案，且无法恢复。' }
         )
     );
+    // 初始加载已存方案
+    updateScenarioComparisonUI(getScenarios(), handleDeleteScenario);
 
     updateWizardUI(currentStep, TOTAL_STEPS);
-    clearResults();
+    
+    // 初始隐藏结果
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer) resultsContainer.classList.add('hidden');
+
     console.log('Application Ready.');
 }
 
