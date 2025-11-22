@@ -79,10 +79,10 @@
 }
 
 .comparison-inactive {
-    opacity: 0.5;
-    pointer-events: none;
+    opacity: 0.4;
     filter: grayscale(100%);
     transition: all 0.3s;
+    /* 关键修改：删除了 pointer-events: none; 这样勾选框才能被再次点击 */
 }
 
 /* Tooltip */

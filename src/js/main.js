@@ -1,10 +1,9 @@
-import '../css/style.css';
-// src/js/main.js
+// src/js/main.js (V15.6 - Final Memory UI Sync Fix)
 
-// --- 模块导入 ---
-import * as config from './config.js'; // 导入所有配置，包括 ALL_INPUT_IDS
-import * as storage from './storage-manager.js'; // [新增] 导入存储管理器
-import { validateInput, isFormValid } from './ui-validator.js'; // 导入验证器
+import '../css/style.css'; // 确保 CSS 被引入
+import * as config from './config.js'; 
+import * as storage from './storage-manager.js'; 
+import { validateInput, isFormValid } from './ui-validator.js'; 
 import { 
     initializeAllUI, 
     initializeWizard, 
@@ -30,20 +29,16 @@ import {
     attachConfirmation
 } from './ui/ui-scenario.js';
 
-// --- 应用程序状态管理 ---
 let currentStep = 1;
 const TOTAL_STEPS = 4;
 let resultsCache = null;
 let isDirty = true;
 
-// --- [新增] 辅助函数：获取当前UI所有值 ---
 function getCurrentInputValues() {
     const values = {};
-    // 使用 config.js 中新生成的 ID 列表
     config.ALL_INPUT_IDS.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
-            // 如果是 checkbox，保存 checked 状态；否则保存 value
             values[id] = element.type === 'checkbox' || element.type === 'radio' 
                 ? element.checked 
                 : element.value;
@@ -52,36 +47,31 @@ function getCurrentInputValues() {
     return values;
 }
 
-// --- [新增] 核心功能：恢复默认参数 ---
 function resetToDefaults() {
     console.log("正在执行重置...");
-    
-    // 1. 遍历默认参数并应用到界面
     Object.keys(config.defaultParameters).forEach(key => {
         const element = document.getElementById(key);
         const defaultValue = config.defaultParameters[key];
         
         if (element) {
             if (element.type === 'checkbox' || element.type === 'radio') {
-                element.checked = defaultValue === true; // 确保它是布尔值
+                element.checked = defaultValue === true; 
             } else {
                 element.value = defaultValue;
-                // 重置后触发一次验证，消除之前的红色报错
-                validateInput(element); 
+            }
+            // 触发 change 以恢复 UI 状态（如取消置灰）
+            element.dispatchEvent(new Event('change'));
+            if(element.type !== 'checkbox' && element.type !== 'radio') {
+                 element.dispatchEvent(new Event('input'));
             }
         }
     });
-
-    // 2. 清除本地存储中的“记忆”
     storage.clearParams();
-    
-    // 3. 标记状态
     isDirty = true;
     clearResults();
     showGlobalNotification('所有参数已恢复默认值，本地记忆已清除。', 'success');
 }
 
-// --- 现有逻辑保持不变 ---
 function markResultsAsStale() {
     if (resultsCache) {
         isDirty = true;
@@ -117,7 +107,6 @@ function handleCalculate() {
         showGlobalNotification('存在无效的输入参数，请检查红色提示框并修正。', 'error');
         return;
     }
-    
     const inputs = readAllInputs(
         (errorMsg) => renderError(errorMsg, 'results-content'), 
         (msg, type) => showGlobalNotification(msg, type)
@@ -127,7 +116,9 @@ function handleCalculate() {
         try {
             console.log("Starting calculation with inputs:", inputs);
             resultsCache = calculate(inputs);
+            // 传入 inputs 以便图表模块使用
             renderResults(resultsCache, inputs);
+            
             isDirty = false;
             showStaleNotice(false);
             const saveBtn = document.getElementById('saveScenarioBtn');
@@ -172,9 +163,7 @@ function setupScenarioSaving() {
         }
         const projectName = document.getElementById('projectName').value || '未命名方案';
         const scenarioName = `${projectName} #${getScenarios().length + 1}`;
-        
-        const inputs = readAllInputs(() => {}, () => {}); // 获取输入用于保存
-
+        const inputs = readAllInputs(() => {}, () => {});
         const scenarioData = {
             name: scenarioName,
             inputs: inputs,
@@ -186,7 +175,6 @@ function setupScenarioSaving() {
                 hpCarbonReduction: resultsCache.solutions.find(s => s.type === 'hp').annualCarbonReduction,
             }
         };
-
         addScenario(scenarioData);
         updateScenarioComparisonUI(getScenarios(), handleDeleteScenario);
         showGlobalNotification(`方案 "${scenarioName}" 已成功暂存！`, 'success');
@@ -199,51 +187,44 @@ function handleDeleteScenario(scenarioId) {
     showGlobalNotification('方案已删除。', 'info');
 }
 
-// --- 应用程序主入口 ---
 function main() {
-    console.log('Phoenix Project V15.3 Initializing (With Memory)...');
+    console.log('Phoenix Project V15.6 Initializing...');
     
-    // 1. 初始化 UI
     initializeAllUI(markResultsAsStale, showGlobalNotification);
     initializeWizard(handleNextStep, handlePrevStep);
 
-    // 2. [新增] 尝试从 localStorage 加载数据
+    // --- [关键修复] 加载记忆并同步 UI 状态 ---
     const savedParams = storage.loadParams();
     if (savedParams) {
         console.log("发现已保存的参数，正在加载...");
         Object.keys(savedParams).forEach(id => {
             const element = document.getElementById(id);
             if (element) {
+                // 1. 恢复值
                 if (element.type === 'checkbox' || element.type === 'radio') {
                     element.checked = savedParams[id];
                 } else {
                     element.value = savedParams[id];
                 }
+                
+                // 2. [新增] 立即触发 change 事件，让 UI (置灰等) 同步状态
+                // 这一步非常关键，否则刷新后虽然没勾选，但界面还是亮色的
+                element.dispatchEvent(new Event('change'));
             }
         });
-        // 加载完数据后，建议触发一次验证，确保UI状态正确
-        // config.ALL_INPUT_IDS.forEach(id => {
-        //     const el = document.getElementById(id);
-        //     if(el && el.type !== 'checkbox' && el.type !== 'radio') validateInput(el);
-        // });
     } else {
         console.log("未发现保存的数据，使用默认值。");
     }
 
-    // 3. [新增] 为所有输入框绑定“实时保存”事件
+    // 绑定实时保存
     config.ALL_INPUT_IDS.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('input', () => {
-                // 验证输入
-                if (element.type !== 'checkbox' && element.type !== 'radio') {
-                    validateInput(element);
-                }
-                // 保存当前状态
+                if (element.type !== 'checkbox' && element.type !== 'radio') validateInput(element);
                 const currentValues = getCurrentInputValues();
                 storage.saveParams(currentValues);
             });
-            // 对于 checkbox/radio，使用 change 事件更准确
             if (element.type === 'checkbox' || element.type === 'radio') {
                 element.addEventListener('change', () => {
                      const currentValues = getCurrentInputValues();
@@ -253,23 +234,16 @@ function main() {
         }
     });
 
-    // 4. [修正] 绑定“恢复默认”按钮逻辑
-    // 注意：这里我们需要使用 HTML 中实际定义的 ID: 'btn-reset-params'
     const resetBtn = document.getElementById('btn-reset-params'); 
     if (resetBtn) {
         resetBtn.addEventListener('click', resetToDefaults);
-        console.log("重置按钮已成功绑定！"); // 添加这行日志以便调试
-    } else {
-        console.error("错误: 无法找到 ID 为 'btn-reset-params' 的按钮，请检查 HTML。");
     }
 
-    // 5. 绑定计算按钮
     const calculateBtn = document.getElementById('calculateBtn');
     if (calculateBtn) {
         calculateBtn.addEventListener('click', handleCalculate);
     }
     
-    // 6. 初始化其他模块
     initializeModal();
     setupScenarioSaving();
     initializeScenarioComparison(
@@ -279,16 +253,12 @@ function main() {
                 updateScenarioComparisonUI(getScenarios(), handleDeleteScenario);
                 showGlobalNotification('所有暂存方案已清空。', 'success');
             }, 
-            {
-                title: '确认清空所有方案',
-                message: '此操作将永久删除所有已暂存的对比方案，且无法恢复。您确定要继续吗？'
-            }
+            { title: '确认清空所有方案', message: '此操作将永久删除所有已暂存的对比方案，且无法恢复。' }
         )
     );
 
     updateWizardUI(currentStep, TOTAL_STEPS);
     clearResults();
-
     console.log('Application Ready.');
 }
 

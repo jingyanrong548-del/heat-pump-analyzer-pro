@@ -1,4 +1,4 @@
-// src/js/ui/ui-renderer.js (V15.5 - BUG FIXED)
+// src/js/ui/ui-renderer.js (V15.10 - Print & Formula Fixed)
 
 import { fWan, fTon, fCop, fPercent, fYears, fNum, fInt, fYuan, fInvest } from '../core/utils.js';
 import { renderCharts } from './ui-chart.js';
@@ -133,18 +133,23 @@ export function renderResults(results, inputs) {
 
     // 1. 自动修复 HTML 结构
     if (!document.getElementById('text-results-container')) {
-        console.warn("检测到旧的 HTML 结构，正在自动注入图表容器...");
         resultsContent.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
-                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">年度能源与运维成本对比 (万元)</h3>
-                    <div class="relative h-64 w-full">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">年度总运行成本对比 (万元)</h3>
+                    <div class="relative h-60 w-full">
                         <canvas id="costComparisonChart"></canvas>
                     </div>
                 </div>
                 <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
-                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">工业热泵全寿命周期成本(LCC)构成</h3>
-                    <div class="relative h-64 w-full">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">折算吨蒸汽成本对比 (元/吨)</h3>
+                    <div class="relative h-60 w-full">
+                        <canvas id="steamUnitCostChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">工业热泵 LCC 成本构成</h3>
+                    <div class="relative h-60 w-full">
                         <canvas id="lccBreakdownChart"></canvas>
                     </div>
                 </div>
@@ -162,29 +167,41 @@ export function renderResults(results, inputs) {
         renderCostComparisonResults(results);
     }
 
-    // 重新绑定事件
+    // 重新绑定按钮事件 (使用 onclick 避免重复绑定)
     setTimeout(() => {
-        document.getElementById('toggle-details-btn')?.addEventListener('click', (e) => {
-            document.getElementById('calculation-details').classList.toggle('hidden');
-            e.target.textContent = e.target.textContent.includes('显示') ? '隐藏详细计算过程' : '显示详细计算过程 (含公式)';
-        });
-        document.getElementById('toggle-risk-btn')?.addEventListener('click', (e) => {
-            document.getElementById('risk-analysis-details').classList.toggle('hidden');
-            e.target.textContent = e.target.textContent.includes('显示') ? '隐藏投资风险及对策分析' : '显示投资风险及对策分析';
-        });
-        document.getElementById('printReportBtn')?.addEventListener('click', () => {
-            buildPrintReport(results);
-            // 延时打印，确保图片加载完毕
-            setTimeout(() => window.print(), 500);
-        });
-    }, 0);
+        const detailsBtn = document.getElementById('toggle-details-btn');
+        if (detailsBtn) {
+            detailsBtn.onclick = (e) => {
+                document.getElementById('calculation-details').classList.toggle('hidden');
+                e.target.textContent = e.target.textContent.includes('显示') ? '隐藏详细计算过程' : '显示详细计算过程 (含公式)';
+            };
+        }
 
-    populateCalculationDetails(results);
+        const riskBtn = document.getElementById('toggle-risk-btn');
+        if (riskBtn) {
+            riskBtn.onclick = (e) => {
+                document.getElementById('risk-analysis-details').classList.toggle('hidden');
+                e.target.textContent = e.target.textContent.includes('显示') ? '隐藏投资风险及对策分析' : '显示投资风险及对策分析';
+            };
+        }
+
+        const printBtn = document.getElementById('printReportBtn');
+        if (printBtn) {
+            printBtn.onclick = () => {
+                // [修复] 将 inputs 传递给 buildPrintReport
+                buildPrintReport(results, inputs);
+                setTimeout(() => window.print(), 500);
+            };
+        }
+    }, 50);
+
+    populateCalculationDetails(results, inputs);
     populateRiskAnalysisDetails(analysisMode);
 
-    // 渲染图表
-    if (analysisMode !== 'bot' && document.getElementById('costComparisonChart')) {
-        renderCharts(results, inputs);
+    if (analysisMode !== 'bot') {
+        setTimeout(() => {
+            renderCharts(results, inputs);
+        }, 50);
     }
 }
 
@@ -224,7 +241,7 @@ function renderCostComparisonResults(results) {
                         <p class="text-xl font-semibold text-blue-600">${fNum(hpSystemDetails.electricity_per_steam_ton, 1)} kWh/t</p>
                     </div>
                     <div class="sm:text-right mt-2 sm:mt-0">
-                        <p class="text-xs text-blue-700">折算吨蒸汽单价</p>
+                        <p class="text-xs text-blue-700">折算吨蒸汽成本</p>
                         <p class="text-xl font-semibold text-blue-600">${fYuan(hpSystemDetails.cost_per_steam_ton)} 元/t</p>
                     </div>
                 </div>
@@ -252,6 +269,14 @@ function renderCostComparisonResults(results) {
         <div class="bg-gray-50 p-6 rounded-lg border mt-8 space-y-4">
             <h4 class="text-xl font-bold text-gray-800 border-b pb-3">与 <span class="text-blue-600">${boiler.name}</span> 对比</h4>
             
+            <div class="flex justify-between items-center bg-white p-3 rounded border border-gray-200 mb-2">
+                 <span class="text-gray-600 text-sm">折算吨蒸汽成本</span>
+                 <div class="text-right">
+                    <div class="text-xs text-gray-500">${boiler.name}: ${fYuan(boiler.cost_per_steam_ton)} 元/t</div>
+                    <div class="font-bold text-blue-600">热泵优势: 节省 ${fYuan(boiler.cost_per_steam_ton - hpSystemDetails.cost_per_steam_ton)} 元/t</div>
+                 </div>
+            </div>
+
             <div class="space-y-2">
                 <h5 class="font-semibold text-blue-800 text-md">视角: 投资回报率 (ROI)</h5>
                 <div class="flex justify-between items-center text-sm py-2 border-b border-gray-200">
@@ -344,8 +369,6 @@ function renderCostComparisonResults(results) {
     }
     conclusionHTML += '</div>';
 
-    html += conclusionHTML;
-    
     let buttonsHTML = `
         <div class="mt-8 space-y-2">
             <button id="toggle-details-btn" class="w-full bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition">显示详细计算过程 (含公式)</button>
@@ -361,23 +384,16 @@ function renderCostComparisonResults(results) {
     html += buttonsHTML;
     
     textContainer.innerHTML = html;
-    
-    // [修复点] 在使用 resultsContent 前重新获取它
-    const resultsContent = document.getElementById('results-content');
-    if(resultsContent) {
-         resultsContent.classList.remove('hidden');
-         resultsContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
 }
 
-export function populateCalculationDetails(results) {
+export function populateCalculationDetails(results, inputs) {
     const detailsContainer = document.getElementById('calculation-details');
     if (!detailsContainer) return;
     
     if (results.analysisMode === 'bot') {
         populateBotCalculationDetails(results);
     } else {
-        populateCostComparisonCalculationDetails(results);
+        populateCostComparisonCalculationDetails(results, inputs);
     }
 }
 
@@ -422,16 +438,19 @@ export function populateRiskAnalysisDetails(analysisMode) {
     riskContainer.innerHTML = riskHTML;
 }
 
-export function buildPrintReport(results) {
+// [修复] 打印报告函数：接收 inputs 参数
+export function buildPrintReport(results, inputs) {
     const printContainer = document.getElementById('print-report-container');
     if (!printContainer) return;
     
-    const { inputs, lccParams, comparisons, hp, isHybridMode, hybridSystem } = results;
-    const projectName = inputs.projectName || "未命名项目";
+    const { lccParams, comparisons, hp, isHybridMode, hybridSystem } = results;
+    // 从 inputs 中获取项目名称，如果 inputs 不存在（防御性）则用 results 中的
+    const projectName = inputs?.projectName || "未命名项目";
     const reportDate = new Date().toLocaleString('zh-CN');
     
     const chart1Data = document.getElementById('costComparisonChart')?.toDataURL('image/png');
-    const chart2Data = document.getElementById('lccBreakdownChart')?.toDataURL('image/png');
+    const chart2Data = document.getElementById('steamUnitCostChart')?.toDataURL('image/png');
+    const chart3Data = document.getElementById('lccBreakdownChart')?.toDataURL('image/png');
 
     let reportHTML = `
         <div class="print-header">
@@ -439,18 +458,21 @@ export function buildPrintReport(results) {
             <h1>工业热泵经济与环境效益分析报告</h1>
             <p>报告日期: ${reportDate}</p>
         </div>
+
         <div class="print-section">
              <h3>核心数据图表</h3>
-             <div class="print-charts-row">
-                ${chart1Data ? `<img src="${chart1Data}" class="print-chart-img" alt="成本对比图">` : ''}
-                ${chart2Data ? `<img src="${chart2Data}" class="print-chart-img" alt="LCC构成图">` : ''}
+             <div class="print-charts-row" style="display: flex; gap: 10px;">
+                ${chart1Data ? `<div style="flex:1"><img src="${chart1Data}" class="print-chart-img" style="width:100%"></div>` : ''}
+                ${chart2Data ? `<div style="flex:1"><img src="${chart2Data}" class="print-chart-img" style="width:100%"></div>` : ''}
+                ${chart3Data ? `<div style="flex:1"><img src="${chart3Data}" class="print-chart-img" style="width:100%"></div>` : ''}
              </div>
         </div>
+
         <div class="print-section">
             <h3>1. 核心输入参数</h3>
             <table class="print-table">
                 <tr><td>项目名称</td><td>${projectName}</td></tr>
-                <tr><td>年总制热量</td><td class="text-right">${fNum(inputs.annualHeatingDemandKWh, 0)} kWh</td></tr>
+                <tr><td>年总制热量</td><td class="text-right">${fNum(inputs?.annualHeatingDemandKWh, 0)} kWh</td></tr>
                 <tr><td>经济分析年限</td><td class="text-right">${lccParams.lccYears} 年</td></tr>
                 <tr><td>基准折现率</td><td class="text-right">${fPercent(lccParams.discountRate, 1)}</td></tr>
             </table>
@@ -458,17 +480,18 @@ export function buildPrintReport(results) {
         <div class="print-section">
             <h3>2. 方案静态对比 (第1年)</h3>
             <table class="print-table">
-                <thead><tr><th>方案名称</th><th class="text-right">总投资(万)</th><th class="text-right">年运行成本(万)</th></tr></thead>
+                <thead><tr><th>方案名称</th><th class="text-right">总投资(万)</th><th class="text-right">年运行成本(万)</th><th class="text-right">吨蒸汽成本(元)</th></tr></thead>
                 <tbody>
                     <tr>
                         <td><strong>${isHybridMode ? hybridSystem.name : '工业热泵方案'}</strong></td>
                         <td class="text-right"><strong>${fWan(isHybridMode ? hybridSystem.lcc.capex : hp.lcc.capex)}</strong></td>
                         <td class="text-right"><strong>${fWan(isHybridMode ? hybridSystem.opex : hp.opex)}</strong></td>
+                        <td class="text-right"><strong>${fYuan(isHybridMode ? hybridSystem.cost_per_steam_ton : hp.cost_per_steam_ton)}</strong></td>
                     </tr>
     `;
     comparisons.forEach(c => {
-        const boilerData = results[c.key];
-        reportHTML += `<tr><td>${c.name}</td><td class="text-right">${fWan(boilerData.lcc.capex)}</td><td class="text-right">${fWan(boilerData.opex)}</td></tr>`;
+        const boilerData = results[c.key] || c; // 兼容性处理
+        reportHTML += `<tr><td>${c.name}</td><td class="text-right">${fWan(boilerData.initialInvestment || boilerData.lcc.capex)}</td><td class="text-right">${fWan(boilerData.opex)}</td><td class="text-right">${fYuan(boilerData.cost_per_steam_ton)}</td></tr>`;
     });
     reportHTML += `
                 </tbody>
@@ -492,102 +515,87 @@ export function buildPrintReport(results) {
     printContainer.innerHTML = reportHTML;
 }
 
-function populateBotCalculationDetails(results) {
-    const detailsContainer = document.getElementById('calculation-details');
-    if (detailsContainer) {
-        detailsContainer.innerHTML = `<p class="p-4">BOT 模式的详细计算过程功能待添加。</p>`;
-    }
-}
-
-function populateCostComparisonCalculationDetails(results) {
+// --- [专家级] 详细计算过程 (中文公式) ---
+function populateCostComparisonCalculationDetails(results, inputs) {
     const detailsContainer = document.getElementById('calculation-details');
     if (!detailsContainer) return;
     
-    const { isHybridMode, lccParams, hp, comparisons, inputs, hybridSystem, hybrid_aux } = results;
-    const hpSystemDetails = isHybridMode ? hybridSystem : hp;
-    const { annualHeatingDemandKWh, weightedAvgElecPrice } = inputs;
-    const gridFactorToDisplay = inputs.isGreenElectricity ? 0 : inputs.gridFactor;
-    const gridFactorLabel = inputs.isGreenElectricity ? '绿电因子' : '电网因子';
+    const { isHybridMode, hp, comparisons, hybridSystem } = results;
+    const hpDetails = isHybridMode ? hybridSystem : hp;
 
-    let detailsHTML = `<div class="p-4 md:p-6 space-y-6 text-xs">`;
-    detailsHTML += `
-        <div>
-            <h3 class="text-base font-bold border-b pb-2 mb-2">A. 核心经济指标计算方法与依据</h3>
-            <div class="space-y-1 text-gray-600">
-                <p><b>全寿命周期成本 (LCC):</b> LCC = CAPEX + NPV(Energy) + NPV(O&M) - NPV(Salvage)。</p>
-                <p><b>净现值 (NPV):</b> NPV = (LCC_基准 - LCC_工业热泵)。NPV > 0 代表项目可行。</p>
-                <p><b>内部收益率 (IRR):</b> 使项目净现值(NPV)等于零时的折现率。IRR > 基准折现率，代表项目优秀。</p>
-            </div>
+    let html = `<div class="p-5 text-sm space-y-5 text-gray-700 font-sans leading-relaxed">`;
+
+    // 0. 前言
+    html += `
+        <div class="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
+            <h4 class="font-bold text-blue-900">计算说明</h4>
+            <p>本分析基于能量守恒定律，将所有热源统一折算为<b>有效热量</b>进行对比。核心折算标准：<b>1吨蒸汽 ≈ 700 kWh (约2.5 GJ) 有效热量</b>。</p>
         </div>
     `;
-    
-    if (isHybridMode) {
-        const hpLoadSharePercent = (inputs.hybridLoadShare * 100).toFixed(1);
-        const auxLoadSharePercent = (100 - parseFloat(hpLoadSharePercent)).toFixed(1);
-        detailsHTML += `
-            <div>
-                <h3 class="text-base font-bold border-b pb-2 mb-2">B. 本次项目详细计算过程 (混合模式)</h3>
-                <p><b>年总制热量:</b> ${fNum(annualHeatingDemandKWh, 0)} kWh</p>
-                <div class="mt-2 p-3 bg-blue-50 rounded-md space-y-1">
-                    <h4 class="font-semibold text-blue-800">方案A: 混合系统 (总计)</h4>
-                    <p>• 年总运行成本 (第1年): ${fWan(hybridSystem.opex)} 万元</p>
-                    <p>• 年总碳排放量: ${fTon(hybridSystem.co2)} 吨 CO₂</p>
-                    <p>• 产热成本: ${hybridSystem.cost_per_kwh_heat.toFixed(4)} 元/kWh_热</p>
-                </div>
-                <div class="mt-2 p-3 bg-gray-50 rounded-md space-y-1">
-                    <h4 class="font-semibold text-gray-700">混合系统 - 工业热泵部分 (${hpLoadSharePercent}%)</h4>
-                    <p>• 年能源成本: ${fYuan(hp.energyCost)} 元</p>
-                </div>
-                <div class="mt-2 p-3 bg-gray-50 rounded-md space-y-1">
-                    <h4 class="font-semibold text-gray-700">混合系统 - 辅助热源 (${hybrid_aux.name}, ${auxLoadSharePercent}%)</h4>
-                    <p>• 年能源消耗: ${fNum(hybrid_aux.consumption)} ${hybrid_aux.consumptionUnit}</p>
-                    <p>• 年能源成本: ${fYuan(hybrid_aux.energyCost)} 元</p>
-                </div>
-            </div>
-        `;
-    } else {
-        detailsHTML += `
-            <div>
-                <h3 class="text-base font-bold border-b pb-2 mb-2">B. 本次项目详细计算过程 (标准模式)</h3>
-                 <p><b>年总制热量:</b> ${fNum(annualHeatingDemandKWh, 0)} kWh</p>
-                 <div class="mt-2 p-3 bg-blue-50 rounded-md space-y-1">
-                    <h4 class="font-semibold text-blue-800">方案A: 工业热泵</h4>
-                    
-                    <p>• 年总电耗: ${fNum(hpSystemDetails.consumption, 0)} kWh</p>
-                    
-                    <p>• 年总运行成本: ${fWan(hp.opex)} 万元</p>
-                    <p>• 产热成本: ${hp.cost_per_kwh_heat.toFixed(4)} 元/kWh_热</p>
-                    <p>• 年碳排放量: ${fTon(hp.co2)} 吨 CO₂</p>
-                </div>
-            </div>
-        `;
-    }
 
-    detailsHTML += `<div class="space-y-4">`;
+    // 1. 基础数据
+    html += `
+        <div>
+            <h4 class="font-bold text-base text-gray-800 border-b pb-1 mb-2">Step 1: 确定项目热负荷</h4>
+            <p class="ml-4">根据您输入的参数，该项目全年的总制热需求 (Q) 为：</p>
+            <p class="ml-8 bg-gray-100 p-2 rounded inline-block font-mono text-blue-600">${fNum(inputs.annualHeatingDemandKWh, 0)} kWh</p>
+        </div>
+    `;
+
+    // 2. 工业热泵计算
+    const cop = inputs.hpCop;
+    const elecPrice = inputs.priceTiers[0].price;
+    const hpCons = hpDetails.consumption;
+    
+    html += `
+        <div>
+            <h4 class="font-bold text-base text-gray-800 border-b pb-1 mb-2">Step 2: 工业热泵能耗与成本</h4>
+            <ul class="list-disc ml-8 space-y-1 mt-2">
+                <li><b>耗电量：</b> = 总热需求 ÷ COP <br> = ${fNum(inputs.annualHeatingDemandKWh, 0)} ÷ ${cop} = <b>${fNum(hpCons, 0)} kWh</b></li>
+                <li><b>电费成本：</b> = 耗电量 × 平均电价 <br> = ${fNum(hpCons, 0)} × ${elecPrice} = <b>${fWan(hpDetails.energyCost)} 万元</b></li>
+                <li><b>总运行成本：</b> = 电费 + 维保费 (${fWan(hp.annualOpex)}万) = <span class="text-blue-600 font-bold">${fWan(hpDetails.opex)} 万元</span></li>
+            </ul>
+        </div>
+    `;
+
+    // 3. 对比方案计算
+    html += `<div><h4 class="font-bold text-base text-gray-800 border-b pb-1 mb-2">Step 3: 对比方案能耗推演</h4>`;
+    
     comparisons.forEach(c => {
-        const boiler = results[c.key];
-        detailsHTML += `
-            <div class="pt-4 border-t">
-                <h4 class="font-semibold text-gray-800">对比: ${isHybridMode ? hybridSystem.name : '工业热泵'} vs ${c.name}</h4>
-                <div class="text-gray-600 space-y-1 mt-1">
-                    <p>• <b>基准 (${c.name}) 年消耗:</b> ${fNum(boiler.consumption, 1)} ${boiler.consumptionUnit}</p>
-                    <p>• <b>基准 (${c.name}) 年运行成本:</b> ${fWan(boiler.opex)} 万元</p>
-                    <p class="font-semibold text-green-700">↳ 年节省总成本: ${fWan(c.opexSaving)} 万元</p>
-                    <p class="font-semibold text-blue-800">↳ LCC 节省 (NPV): ${fWan(c.npv)} 万元</p>
-                    <p class="font-semibold text-blue-800">↳ 内部收益率 (IRR): ${fPercent(c.irr)}</p>
+        let formulaDesc = "";
+        let calcStr = "";
+        
+        if (c.key === 'gas') {
+            formulaDesc = "天然气耗量 = 总热需求 ÷ (热值 × 锅炉效率)";
+            calcStr = `${fNum(inputs.annualHeatingDemandKWh, 0)} × 3.6 ÷ (${inputs.gasCalorific} × ${fPercent(inputs.gasBoilerEfficiency)})`;
+        } else if (c.key === 'coal' || c.key === 'fuel' || c.key === 'biomass') {
+            formulaDesc = "燃料耗量 = 总热需求 ÷ (热值 × 锅炉效率)";
+            calcStr = "基于热值折算..."; // 简化显示，避免复杂公式
+        } else if (c.key === 'electric') {
+            formulaDesc = "电锅炉耗电 = 总热需求 ÷ 效率";
+            calcStr = `${fNum(inputs.annualHeatingDemandKWh, 0)} ÷ ${fPercent(inputs.electricBoilerEfficiency)}`;
+        } else if (c.key === 'steam') {
+             formulaDesc = "蒸汽耗量 = 总热需求 ÷ (蒸汽焓值 × 换热效率)";
+             calcStr = `${fNum(inputs.annualHeatingDemandKWh, 0)} × 3.6 ÷ ...`;
+        }
+
+        html += `
+            <div class="mt-4 bg-gray-50 p-3 rounded border border-gray-200">
+                <h5 class="font-bold text-gray-700">VS. ${c.name}</h5>
+                <div class="text-xs space-y-1 mt-1">
+                    <p>• <b>原理公式:</b> ${formulaDesc}</p>
+                    <p>• <b>能源成本:</b> <b>${fWan(c.energyCost)} 万元</b></p>
+                    <p class="mt-2 pt-2 border-t border-gray-200 text-green-700 font-semibold">
+                        👉 结论：热泵方案每年可为您节省运行费用 ${fWan(c.opexSaving)} 万元。
+                    </p>
                 </div>
             </div>
         `;
     });
-    detailsHTML += `</div></div>`;
-    detailsContainer.innerHTML = detailsHTML;
+
+    html += `</div></div>`;
+    detailsContainer.innerHTML = html;
 }
 
-// **** ADDED: Dummy/Placeholder exports for missing functions to satisfy main.js ****
-export function initializeScenarioComparison(onClearAll) {
-    console.warn("Placeholder function: initializeScenarioComparison called.");
-}
-
-export function updateScenarioComparisonUI(scenarios, onDelete) {
-    console.warn("Placeholder function: updateScenarioComparisonUI called.");
-}
+export function initializeScenarioComparison(onClearAll) { console.warn("Placeholder: initializeScenarioComparison"); }
+export function updateScenarioComparisonUI(scenarios, onDelete) { console.warn("Placeholder: updateScenarioComparisonUI"); }

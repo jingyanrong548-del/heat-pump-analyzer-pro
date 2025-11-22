@@ -1,6 +1,5 @@
-// src/js/ui/ui-setup.js
+// src/js/ui/ui-setup.js (V15.9.2 - ROBUST INPUT READING)
 
-// **** PATH CORRECTIONS VERIFIED ****
 import { fuelData, converters, defaultParameters } from '../config.js'; 
 import { validateInput, clearAllErrors } from '../ui-validator.js';
 
@@ -15,11 +14,6 @@ let stepperItems = [];
 let panes = [];
 let prevStepBtn, nextStepBtn, calculateBtn, resetBtn;
 
-/**
- * 更新向导界面的核心函数
- * @param {number} currentStep - 当前所在的步骤 (1-4)
- * @param {number} totalSteps - 总步骤数
- */
 export function updateWizardUI(currentStep, totalSteps) {
     panes.forEach((pane, index) => {
         pane.classList.toggle('hidden', (index + 1) !== currentStep);
@@ -49,17 +43,11 @@ export function updateWizardUI(currentStep, totalSteps) {
         calculateBtn.classList.toggle('hidden', currentStep !== totalSteps);
     }
 
-    // 这里只控制按钮的显示/隐藏，不负责绑定点击事件
     if (resetBtn) {
         resetBtn.classList.toggle('hidden', currentStep > 3);
     }
 }
 
-/**
- * 初始化向导的函数
- * @param {Function} onNext - "下一步"按钮的回调
- * @param {Function} onPrev - "上一步"按钮的回调
- */
 export function initializeWizard(onNext, onPrev) {
     stepperItems = Array.from(document.querySelectorAll('.stepper .step'));
     panes = Array.from(document.querySelectorAll('.wizard-pane'));
@@ -69,16 +57,13 @@ export function initializeWizard(onNext, onPrev) {
     resetBtn = document.getElementById('btn-reset-params');
 
     if (!prevStepBtn || !nextStepBtn || stepperItems.length === 0 || panes.length === 0) {
-        console.error("Wizard UI elements not found. Navigation will not work.");
+        console.error("Wizard UI elements not found.");
         return;
     }
 
     nextStepBtn.addEventListener('click', onNext);
     prevStepBtn.addEventListener('click', onPrev);
 }
-
-// [已删除] initializeResetButton 函数
-// 该功能已移交至 main.js 统一管理，避免逻辑冲突和控制台警告。
 
 function setupUnitConverters() {
     converters.forEach(c => {
@@ -101,7 +86,6 @@ function setupUnitConverters() {
 
             const conversionFactor = conversions[targetUnit];
              if (conversionFactor === undefined || conversionFactor === null) {
-                 console.error("Missing conversion factor for", c.inputId, "to unit", targetUnit);
                  return;
              }
 
@@ -116,25 +100,29 @@ function setupUnitConverters() {
             input.value = (baseValue * conversionFactor).toFixed(precision);
         });
     });
-
-    const biomassCalorificSelect = document.getElementById('biomassCalorificUnit');
-    if(biomassCalorificSelect) { 
-        biomassCalorificSelect.value = 'kcal/kg';
-        biomassCalorificSelect.dispatchEvent(new Event('change'));
-    }
 }
 
 function setupComparisonToggles() {
     const toggles = document.querySelectorAll('.comparison-toggle');
+    
     const updateRelatedElementStyles = (toggle) => {
-        const target = toggle.dataset.target;
+        const target = toggle.dataset.target; 
         if (!target) return;
+        
         const isChecked = toggle.checked;
-        const relatedElements = document.querySelectorAll(`.related-to-${target}`);
-        relatedElements.forEach(el => {
-            el.classList.toggle('comparison-inactive', !isChecked);
+        const relatedContainers = document.querySelectorAll(`.related-to-${target}`);
+        
+        relatedContainers.forEach(container => {
+            container.classList.toggle('comparison-inactive', !isChecked);
+            const inputs = container.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (!input.classList.contains('comparison-toggle')) {
+                    input.disabled = !isChecked;
+                }
+            });
         });
     };
+
     toggles.forEach(toggle => {
         updateRelatedElementStyles(toggle);
         toggle.addEventListener('change', () => updateRelatedElementStyles(toggle));
@@ -145,32 +133,24 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
     const modeStandard = document.getElementById('modeStandard');
     const modeHybrid = document.getElementById('modeHybrid');
     const modeBot = document.getElementById('modeBot');
-    
     const hybridConfigInputs = document.getElementById('hybridConfigInputs'); 
     const botConfigInputs = document.getElementById('botConfigInputs');
     const comparisonTogglesContainer = document.getElementById('comparisonTogglesContainer');
     const standardModeSections = document.getElementById('standardModeSections'); 
     const lccParamsContainer = document.getElementById('lccParamsContainer');
-    
     const hpCopLabel = document.getElementById('hpCopLabel');
     const hpCopInput = document.getElementById('hpCop'); 
-    
     const section2Title = document.getElementById('section2Title');
     const section7Title = document.getElementById('section7Title');
-
     const calcModeAContainer = document.getElementById('calcModeAContainer');
     const calcModeBContainer = document.getElementById('calcModeBContainer');
     const calcModeCContainer = document.getElementById('calcModeCContainer');
     const calcModeRadios = document.querySelectorAll('input[name="calcMode"]');
 
-    if (!modeStandard || !modeHybrid || !modeBot || !hybridConfigInputs || !botConfigInputs || !comparisonTogglesContainer || !standardModeSections || !lccParamsContainer) {
-        console.error('V11.0 (模式选择) UI 元素未在 HTML 中完全找到。');
-        return;
-    }
+    if (!modeStandard) return;
 
     const applyModeState = (newMode) => {
         const currentValue = hpCopInput.value;
-        
         if (currentMode === 'standard') spfStandardValue = currentValue;
         else if (currentMode === 'hybrid') spfHybridValue = currentValue;
         else if (currentMode === 'bot') spfBotValue = currentValue;
@@ -181,12 +161,9 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
             comparisonTogglesContainer.classList.remove('hidden');
             standardModeSections.classList.remove('hidden'); 
             lccParamsContainer.classList.remove('hidden'); 
-            
             calcModeRadios.forEach(radio => radio.disabled = false);
             const checkedCalcMode = document.querySelector('input[name="calcMode"]:checked');
-            if (checkedCalcMode) {
-                checkedCalcMode.dispatchEvent(new Event('change'));
-            }
+            if (checkedCalcMode) checkedCalcMode.dispatchEvent(new Event('change'));
 
             if (newMode === 'standard') {
                 hpCopLabel.textContent = '全年综合性能系数 (SPF)';
@@ -195,7 +172,6 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
                 hpCopLabel.textContent = '工业热泵在此工况下的 SPF';
                 hpCopInput.value = spfHybridValue;
             }
-            
             section2Title.textContent = "2. 方案配置";
             section7Title.textContent = "7. 财务分析参数";
             
@@ -205,48 +181,38 @@ function setupModeSelector(markResultsAsStale, showGlobalNotification) {
             comparisonTogglesContainer.classList.add('hidden');
             standardModeSections.classList.add('hidden'); 
             lccParamsContainer.classList.remove('hidden'); 
-
             if (calcModeAContainer) calcModeAContainer.classList.add('hidden');
             if (calcModeBContainer) calcModeBContainer.classList.add('hidden');
             if (calcModeCContainer) calcModeCContainer.classList.add('hidden');
             calcModeRadios.forEach(radio => radio.disabled = true);
-
             hpCopLabel.textContent = 'BOT 项目 SPF (用于计算电费成本)';
             hpCopInput.value = spfBotValue;
-            
             section2Title.textContent = "2. 方案与投资配置";
             section7Title.textContent = "7. BOT 财务分析参数";
         }
         
         currentMode = newMode;
-        
         const defaultValue = (newMode === 'standard') ? "3.0" : (newMode === 'hybrid' ? "4.0" : "3.5");
         hpCopInput.classList.toggle('default-param', hpCopInput.value === defaultValue);
-        
         markResultsAsStale();
     };
 
-    modeStandard.addEventListener('change', () => {
-        if (modeStandard.checked) applyModeState('standard');
-    });
-
-    modeHybrid.addEventListener('change', () => {
-        if (modeHybrid.checked) applyModeState('hybrid');
-    });
-    
+    modeStandard.addEventListener('change', () => { if (modeStandard.checked) applyModeState('standard'); });
+    modeHybrid.addEventListener('change', () => { if (modeHybrid.checked) applyModeState('hybrid'); });
     modeBot.addEventListener('change', () => {
         if (modeBot.checked) {
-            if (showGlobalNotification) {
-                showGlobalNotification('模式三 (BOT 模式) 正在升级中，暂不开放。', 'info', 4000);
-            }
+            if (showGlobalNotification) showGlobalNotification('模式三 (BOT 模式) 正在升级中，暂不开放。', 'info', 4000);
             if (currentMode === 'standard') modeStandard.checked = true;
             else if (currentMode === 'hybrid') modeHybrid.checked = true;
             else modeStandard.checked = true;
         }
     });
-
+    // 初始化时确保有默认选中
+    if (!modeStandard.checked && !modeHybrid.checked && !modeBot.checked) {
+        modeStandard.checked = true;
+    }
     hpCopInput.value = spfStandardValue; 
-    applyModeState('standard');
+    applyModeState(document.querySelector('input[name="schemeAMode"]:checked').value);
 }
 
 function setupCalculationModeToggle(markResultsAsStale) {
@@ -254,13 +220,9 @@ function setupCalculationModeToggle(markResultsAsStale) {
     const modeAContainer = document.getElementById('calcModeAContainer');
     const modeBContainer = document.getElementById('calcModeBContainer');
     const modeCContainer = document.getElementById('calcModeCContainer');
-    
     const operatingHoursContainer = document.getElementById('operatingHours')?.parentElement;
 
-    if (!modeAContainer || !modeBContainer || !modeCContainer || !operatingHoursContainer || calcModeRadios.length === 0) {
-        console.error("年加热量计算模式的 UI 元素未完全找到。");
-        return;
-    }
+    if (!modeAContainer) return;
 
     const applyCalcMode = () => {
         const selectedRadio = document.querySelector('input[name="calcMode"]:checked');
@@ -284,20 +246,13 @@ function setupCalculationModeToggle(markResultsAsStale) {
         }
         markResultsAsStale();
     };
-
-    calcModeRadios.forEach(radio => {
-        radio.addEventListener('change', applyCalcMode);
-    });
-
+    calcModeRadios.forEach(radio => radio.addEventListener('change', applyCalcMode));
     applyCalcMode();
 }
 
 function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, showGlobalNotification) {
     const container = document.getElementById('priceTiersContainer');
-    if (!container) {
-        console.error("priceTiersContainer 未找到!");
-        return;
-    }
+    if (!container) return;
     
     const tierId = `tier-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const newTier = document.createElement('div');
@@ -306,26 +261,23 @@ function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, s
 
     newTier.innerHTML = `
         <div class="md:col-span-3">
-            <label for="${tierId}-name" class="block text-xs font-medium text-gray-600 mb-1">时段名称 (可选)</label>
-            <input type="text" id="${tierId}-name" value="${name}" placeholder="例如: 峰时" class="tier-name w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field">
+            <label class="block text-xs font-medium text-gray-600 mb-1">时段名称</label>
+            <input type="text" value="${name}" placeholder="例如: 峰时" class="tier-name w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm track-change">
         </div>
         <div class="md:col-span-3">
-            <label for="${tierId}-price" class="block text-xs font-medium text-gray-600 mb-1">电价 (元/kWh)</label>
-            <input type="number" id="${tierId}-price" value="${price}" placeholder="例如: 1.2" class="tier-price w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field" data-validation="isPositive">
+            <label class="block text-xs font-medium text-gray-600 mb-1">电价 (元/kWh)</label>
+            <input type="number" value="${price}" placeholder="例如: 1.2" class="tier-price w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm track-change" data-validation="isPositive">
             <div class="error-message hidden"></div>
         </div>
         <div class="md:col-span-3">
-            <label for="${tierId}-dist" class="block text-xs font-medium text-gray-600 mb-1">运行比例 (%)</label>
-            <input type="number" id="${tierId}-dist" value="${dist}" placeholder="例如: 40" class="tier-dist w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm track-change storage-mode-field" data-validation="isPercentage">
+            <label class="block text-xs font-medium text-gray-600 mb-1">运行比例 (%)</label>
+            <input type="number" value="${dist}" placeholder="例如: 40" class="tier-dist w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm track-change" data-validation="isPercentage">
             <div class="error-message hidden"></div>
         </div>
         <div class="md:col-span-1 flex items-end h-full">
-            <button class="removePriceTierBtn w-full text-sm bg-red-100 text-red-700 font-semibold py-2 px-3 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-300 mt-5 md:mt-0">
-                删除
-            </button>
+            <button class="removePriceTierBtn w-full text-sm bg-red-100 text-red-700 font-semibold py-2 px-3 rounded-lg hover:bg-red-200 mt-5 md:mt-0">删除</button>
         </div>
     `;
-
     container.appendChild(newTier);
     
     newTier.querySelectorAll('[data-validation]').forEach(input => {
@@ -333,19 +285,8 @@ function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, s
         input.addEventListener('blur', () => validateInput(input)); 
     });
     
-
     newTier.querySelectorAll('input.track-change').forEach(input => {
-        input.dataset.defaultValue = input.value;
-        input.addEventListener('input', (event) => {
-            const currentInput = event.target;
-            const currentDefaultValue = currentInput.dataset.defaultValue;
-            if (currentInput.classList.contains('default-param') || currentDefaultValue !== undefined) {
-                currentInput.classList.toggle('default-param', currentInput.value === currentDefaultValue);
-            }
-            if (currentInput.classList.contains('track-change')) {
-                markResultsAsStale();
-            }
-        });
+        input.addEventListener('input', () => markResultsAsStale());
     });
 
     newTier.querySelector('.removePriceTierBtn').addEventListener('click', () => {
@@ -353,11 +294,8 @@ function addNewPriceTier(name = "", price = "", dist = "", markResultsAsStale, s
             newTier.remove();
             markResultsAsStale(); 
         } else {
-            if(showGlobalNotification) {
-                showGlobalNotification('必须至少保留一个电价时段。', 'error');
-            } else {
-                alert('必须至少保留一个电价时段。');
-            }
+            if(showGlobalNotification) showGlobalNotification('必须至少保留一个电价时段。', 'error');
+            else alert('必须至少保留一个电价时段。');
         }
     });
 }
@@ -370,43 +308,24 @@ function setupPriceTierControls(markResultsAsStale, showGlobalNotification) {
         addNewPriceTier("", "", "", markResultsAsStale, showGlobalNotification);
         markResultsAsStale();
     });
-
     addNewPriceTier("平均电价", "0.7", "100", markResultsAsStale, showGlobalNotification);
-    
-    document.querySelectorAll('.price-tier-entry').forEach(tierEl => {
-        tierEl.querySelectorAll('input').forEach(input => {
-            if (input.value) {
-                input.classList.add('default-param');
-            }
-        });
-    });
 }
 
 function setupGreenElectricityToggle() {
     const toggle = document.getElementById('greenElectricityToggle');
     const gridFactorInput = document.getElementById('gridFactor');
     const gridFactorUnit = document.getElementById('gridFactorUnit');
-
     if (!toggle || !gridFactorInput || !gridFactorUnit) return;
 
     toggle.addEventListener('change', () => {
         if (toggle.checked) {
             gridFactorInput.value = '0';
-            gridFactorInput.dataset.baseValue = '0'; 
             gridFactorInput.disabled = true;
             gridFactorUnit.disabled = true;
-            gridFactorInput.classList.remove('default-param');
         } else {
-            const baseValue = gridFactorInput.getAttribute('data-base-value') || "0.57";
-            gridFactorInput.dataset.baseValue = baseValue;
-            
-            gridFactorUnit.value = 'kgCO2/kWh';
-            gridFactorUnit.dispatchEvent(new Event('change'));
-            
+            gridFactorInput.value = gridFactorInput.dataset.baseValue || "0.57";
             gridFactorInput.disabled = false;
             gridFactorUnit.disabled = false;
-            gridFactorInput.classList.add('default-param');
-            gridFactorInput.dataset.defaultValue = gridFactorInput.value;
         }
     });
 }
@@ -414,13 +333,9 @@ function setupGreenElectricityToggle() {
 function setupFuelTypeSelector() {
     const fuelTypeSelect = document.getElementById('fuelType');
     if (!fuelTypeSelect) return;
-
     const priceInput = document.getElementById('fuelPrice');
     const calorificInput = document.getElementById('fuelCalorific');
     const factorInput = document.getElementById('fuelFactor');
-    const priceTooltip = document.getElementById('fuelPriceTooltip');
-    const calorificTooltip = document.getElementById('fuelCalorificTooltip');
-    const factorTooltip = document.getElementById('fuelFactorTooltip');
     const calorificUnitSelect = document.getElementById('fuelCalorificUnit');
     const factorUnitSelect = document.getElementById('fuelFactorUnit');
 
@@ -428,32 +343,21 @@ function setupFuelTypeSelector() {
         const selectedFuel = e.target.value;
         const data = fuelData[selectedFuel];
         if (!data) return;
-
-        priceInput.dataset.baseValue = data.price;
-        calorificInput.dataset.baseValue = data.calorific;
-        factorInput.dataset.baseValue = data.factor;
-
         priceInput.value = data.price;
-        priceInput.dataset.defaultValue = data.price;
-        priceInput.classList.add('default-param');
-
-        if (priceTooltip) priceTooltip.innerHTML = data.priceTooltip;
-        if (calorificTooltip) calorificTooltip.innerHTML = data.calorificTooltip;
-        if (factorTooltip) factorTooltip.innerHTML = data.factorTooltip;
-
+        calorificInput.value = data.calorific;
+        factorInput.value = data.factor;
+        
         calorificUnitSelect.value = 'MJ/kg'; 
-        calorificUnitSelect.dispatchEvent(new Event('change'));
-        calorificInput.dataset.defaultValue = calorificInput.value;
-        calorificInput.classList.add('default-param');
-
         factorUnitSelect.value = 'kgCO2/t'; 
+        
+        // Trigger changes to update base values
+        calorificUnitSelect.dispatchEvent(new Event('change'));
         factorUnitSelect.dispatchEvent(new Event('change'));
-        factorInput.dataset.defaultValue = factorInput.value;
-        factorInput.classList.add('default-param');
+        priceInput.dispatchEvent(new Event('input'));
     });
 }
 
-// 主的UI初始化函数
+// 主 UI 初始化
 export function initializeAllUI(markResultsAsStale, showGlobalNotification) {
     setupUnitConverters();
     setupComparisonToggles();
@@ -462,8 +366,6 @@ export function initializeAllUI(markResultsAsStale, showGlobalNotification) {
     setupPriceTierControls(markResultsAsStale, showGlobalNotification); 
     setupModeSelector(markResultsAsStale, showGlobalNotification);
     setupCalculationModeToggle(markResultsAsStale);
-    
-    // [已删除] initializeResetButton 调用
 
     const inputsToValidate = document.querySelectorAll('[data-validation]');
     inputsToValidate.forEach(input => {
@@ -471,80 +373,20 @@ export function initializeAllUI(markResultsAsStale, showGlobalNotification) {
         input.addEventListener('blur', () => validateInput(input));
     });
     
-    const allInputs = document.querySelectorAll('input[type="number"], input[type="checkbox"], select, input[type="text"], input[type="radio"]');
-    allInputs.forEach(input => {
-        let defaultValue;
-        if (input.type === 'checkbox') {
-            defaultValue = input.checked;
-        } else {
-            defaultValue = input.value;
-        }
-        
-        if (input.id === 'heatingLoad' || input.id === 'annualHeating' || input.id.endsWith('Calorific') || input.id.endsWith('Factor')) {
-             if (input.dataset.baseValue === undefined) {
-                input.dataset.baseValue = input.value;
-             }
-        }
-        input.dataset.defaultValue = defaultValue;
-        const inputChangeCallback = (event) => {
-            const currentInput = event.target;
-            
-            let currentDefaultValue = currentInput.dataset.defaultValue;
-            let currentValue = currentInput.value;
-            
-            if (currentInput.type === 'checkbox') {
-                currentValue = currentInput.checked;
-                currentDefaultValue = currentDefaultValue === 'true'; 
-            }
-
-            if (currentInput.classList.contains('default-param') || currentDefaultValue !== undefined) {
-                currentInput.classList.toggle('default-param', currentValue === currentDefaultValue);
-            }
-
-            const unitSelect = document.getElementById(currentInput.id + 'Unit');
-            if (unitSelect && unitSelect.id.includes('Unit')) {
-                const currentVal = parseFloat(currentInput.value);
-                if (isNaN(currentVal)) {
-                     const originalBaseValue = currentInput.getAttribute('data-base-value');
-                     currentInput.dataset.baseValue = originalBaseValue;
-                     if (currentInput.classList.contains('track-change')) {
-                         markResultsAsStale();
-                     }
-                     return;
-                }
-
-                const currentUnit = unitSelect.value;
-                const converter = converters.find(c => c.inputId === currentInput.id);
-                if (!converter) return;
-
-                const allConversions = converter.dynamicConversions ? converter.dynamicConversions() : converter.conversions;
-                const conversionFactor = allConversions[currentUnit];
-
-                if (currentVal === 0) {
-                     currentInput.dataset.baseValue = 0;
-                } else if (conversionFactor && conversionFactor !== 0) {
-                    const newBaseValue = currentVal / conversionFactor;
-                    currentInput.dataset.baseValue = newBaseValue;
-                }
-            }
-            
-            if (currentInput.classList.contains('track-change')) {
-                 markResultsAsStale();
-            }
-        };
-
-        if (input.tagName === 'SELECT' || input.type === 'checkbox' || input.type === 'radio') {
-             input.addEventListener('change', inputChangeCallback);
-        } else {
-             input.addEventListener('input', inputChangeCallback);
-        }
+    // 通用 change 监听
+    document.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('change', () => {
+            if (input.classList.contains('track-change')) markResultsAsStale();
+        });
+         input.addEventListener('input', () => {
+            if (input.classList.contains('track-change')) markResultsAsStale();
+        });
     });
 }
 
 export function readAllInputs(showErrorCallback, alertNotifier) {
     const priceTiers = [];
     let totalDist = 0;
-    
     document.querySelectorAll('.price-tier-entry').forEach(tierEl => {
         const name = tierEl.querySelector('.tier-name').value.trim() || '时段';
         const price = parseFloat(tierEl.querySelector('.tier-price').value) || 0;
@@ -553,24 +395,23 @@ export function readAllInputs(showErrorCallback, alertNotifier) {
         priceTiers.push({ name, price, dist });
     });
 
-    const analysisMode = document.querySelector('input[name="schemeAMode"]:checked').value || 'standard';
+    // [关键修复] 获取 schemeAMode 时增加防御性检查
+    const modeRadio = document.querySelector('input[name="schemeAMode"]:checked');
+    // 如果获取不到，说明出现异常，默认回退到 'standard'
+    const analysisMode = modeRadio ? modeRadio.value : 'standard';
 
     if (analysisMode !== 'bot') {
         if (Math.abs(totalDist - 100) > 0.1) {
             showErrorCallback(`电价时段总比例必须为 100%，当前为 ${totalDist.toFixed(1)}%！`);
             return null;
         }
-        if (priceTiers.some(t => t.price <= 0 || t.dist <= 0)) {
-            showErrorCallback('电价或运行比例必须大于 0！');
-            return null;
-        }
     }
-    
     showErrorCallback(null);
 
+    // 获取 calcMode
     const calcModeRadio = document.querySelector('input[name="calcMode"]:checked');
     const calcMode = calcModeRadio ? calcModeRadio.value : 'annual';
-    
+
     const heatingLoad = parseFloat(document.getElementById('heatingLoad').dataset.baseValue) || 0;
     const operatingHours = parseFloat(document.getElementById('operatingHours').value) || 0;
     const annualHeating = parseFloat(document.getElementById('annualHeating').dataset.baseValue) || 0;
@@ -579,89 +420,83 @@ export function readAllInputs(showErrorCallback, alertNotifier) {
     const loadFactor = (parseFloat(document.getElementById('loadFactor').value) || 0) / 100;
 
     let annualHeatingDemandKWh = 0;
-    if (calcMode === 'annual') {
-        annualHeatingDemandKWh = heatingLoad * operatingHours;
-    } else if (calcMode === 'total') {
-        annualHeatingDemandKWh = annualHeating;
-    } else if (calcMode === 'daily') {
-        annualHeatingDemandKWh = heatingLoad * dailyHours * annualDays * loadFactor;
-    }
+    if (calcMode === 'annual') annualHeatingDemandKWh = heatingLoad * operatingHours;
+    else if (calcMode === 'total') annualHeatingDemandKWh = annualHeating;
+    else if (calcMode === 'daily') annualHeatingDemandKWh = heatingLoad * dailyHours * annualDays * loadFactor;
+
+    const getValue = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+    const getBaseValue = (id) => parseFloat(document.getElementById(id)?.dataset.baseValue) || 0;
 
     const inputs = {
-        analysisMode: analysisMode,
+        analysisMode,
         isHybridMode: analysisMode === 'hybrid',
         lccYears: parseInt(document.getElementById('lccYears').value) || 15,
-        discountRate: (parseFloat(document.getElementById('discountRate').value) || 8) / 100,
-        energyInflationRate: (parseFloat(document.getElementById('energyInflationRate').value) || 3) / 100,
-        opexInflationRate: (parseFloat(document.getElementById('opexInflationRate').value) || 5) / 100,
+        discountRate: getValue('discountRate') / 100,
+        energyInflationRate: getValue('energyInflationRate') / 100,
+        opexInflationRate: getValue('opexInflationRate') / 100,
         isGreenElectricity: document.getElementById('greenElectricityToggle').checked,
-        priceTiers: priceTiers,
+        priceTiers,
         projectName: document.getElementById('projectName').value, 
-        heatingLoad: heatingLoad,
-        operatingHours: operatingHours,
-        annualHeating: annualHeating,
-        dailyHours: dailyHours,
-        annualDays: annualDays,
-        loadFactor: loadFactor,
-        annualHeatingDemandKWh: annualHeatingDemandKWh,
-        hpHostCapex: parseFloat(document.getElementById('hpCapex').value) * 10000 || 0,
-        hpStorageCapex: parseFloat(document.getElementById('storageCapex').value) * 10000 || 0,
-        hpSalvageRate: (parseFloat(document.getElementById('hpSalvageRate').value) || 0) / 100,
-        gasBoilerCapex: parseFloat(document.getElementById('gasBoilerCapex').value) * 10000 || 0,
-        gasSalvageRate: (parseFloat(document.getElementById('gasSalvageRate').value) || 0) / 100,
-        fuelBoilerCapex: parseFloat(document.getElementById('fuelBoilerCapex').value) * 10000 || 0,
-        fuelSalvageRate: (parseFloat(document.getElementById('fuelSalvageRate').value) || 0) / 100,
-        coalBoilerCapex: parseFloat(document.getElementById('coalBoilerCapex').value) * 10000 || 0,
-        coalSalvageRate: (parseFloat(document.getElementById('coalSalvageRate').value) || 0) / 100,
-        biomassBoilerCapex: parseFloat(document.getElementById('biomassBoilerCapex').value) * 10000 || 0,
-        biomassSalvageRate: (parseFloat(document.getElementById('biomassSalvageRate').value) || 0) / 100,
-        electricBoilerCapex: parseFloat(document.getElementById('electricBoilerCapex').value) * 10000 || 0,
-        electricSalvageRate: (parseFloat(document.getElementById('electricSalvageRate').value) || 0) / 100,
-        steamCapex: parseFloat(document.getElementById('steamCapex').value) * 10000 || 0,
-        steamSalvageRate: parseFloat(document.getElementById('steamSalvageRate').value) / 100 || 0,
-        hpCop: parseFloat(document.getElementById('hpCop').value) || 0,
-        gasBoilerEfficiency: parseFloat(document.getElementById('gasBoilerEfficiency').value) / 100 || 0,
-        fuelBoilerEfficiency: parseFloat(document.getElementById('fuelBoilerEfficiency').value) / 100 || 0,
-        coalBoilerEfficiency: parseFloat(document.getElementById('coalBoilerEfficiency').value) / 100 || 0,
-        biomassBoilerEfficiency: parseFloat(document.getElementById('biomassBoilerEfficiency').value) / 100 || 0,
-        electricBoilerEfficiency: parseFloat(document.getElementById('electricBoilerEfficiency').value) / 100 || 0,
-        steamEfficiency: parseFloat(document.getElementById('steamEfficiency').value) / 100 || 0,
-        gasPrice: parseFloat(document.getElementById('gasPrice').value) || 0,
-        fuelPrice: parseFloat(document.getElementById('fuelPrice').value) || 0,
-        coalPrice: parseFloat(document.getElementById('coalPrice').value) || 0,
-        biomassPrice: parseFloat(document.getElementById('biomassPrice').value) || 0,
-        steamPrice: parseFloat(document.getElementById('steamPrice').value) || 0,
-        gridFactor: (document.getElementById('greenElectricityToggle').checked) ? 0 : (parseFloat(document.getElementById('gridFactor').dataset.baseValue) || 0),
-        gasFactor: parseFloat(document.getElementById('gasFactor').dataset.baseValue) || 0,
-        fuelFactor: parseFloat(document.getElementById('fuelFactor').dataset.baseValue) || 0,
-        coalFactor: parseFloat(document.getElementById('coalFactor').dataset.baseValue) || 0,
-        biomassFactor: parseFloat(document.getElementById('biomassFactor').dataset.baseValue), 
-        steamFactor: parseFloat(document.getElementById('steamFactor').dataset.baseValue) || 0,
-        gasCalorific: parseFloat(document.getElementById('gasCalorific').dataset.baseValue) || 0,
-        fuelCalorific: parseFloat(document.getElementById('fuelCalorific').dataset.baseValue) || 0,
-        coalCalorific: parseFloat(document.getElementById('coalCalorific').dataset.baseValue) || 0,
-        biomassCalorific: parseFloat(document.getElementById('biomassCalorific').dataset.baseValue) || 0,
-        steamCalorific: parseFloat(document.getElementById('steamCalorific').dataset.baseValue) || 0,
-        hpOpexCost: (parseFloat(document.getElementById('hpOpexCost').value) || 0) * 10000,
-        gasOpexCost: (parseFloat(document.getElementById('gasOpexCost').value) || 0) * 10000,
-        fuelOpexCost: (parseFloat(document.getElementById('fuelOpexCost').value) || 0) * 10000,
-        coalOpexCost: (parseFloat(document.getElementById('coalOpexCost').value) || 0) * 10000,
-        biomassOpexCost: (parseFloat(document.getElementById('biomassOpexCost').value) || 0) * 10000,
-        electricOpexCost: (parseFloat(document.getElementById('electricOpexCost').value) || 0) * 10000,
-        steamOpexCost: (parseFloat(document.getElementById('steamOpexCost').value) || 0) * 10000,
-        hybridLoadShare: (parseFloat(document.getElementById('hybridLoadShare').value) || 0) / 100,
+        heatingLoad, operatingHours, annualHeating, dailyHours, annualDays, loadFactor,
+        annualHeatingDemandKWh,
+        hpHostCapex: getValue('hpCapex') * 10000,
+        hpStorageCapex: getValue('storageCapex') * 10000,
+        hpSalvageRate: getValue('hpSalvageRate') / 100,
+        gasBoilerCapex: getValue('gasBoilerCapex') * 10000,
+        gasSalvageRate: getValue('gasSalvageRate') / 100,
+        fuelBoilerCapex: getValue('fuelBoilerCapex') * 10000,
+        fuelSalvageRate: getValue('fuelSalvageRate') / 100,
+        coalBoilerCapex: getValue('coalBoilerCapex') * 10000,
+        coalSalvageRate: getValue('coalSalvageRate') / 100,
+        biomassBoilerCapex: getValue('biomassBoilerCapex') * 10000,
+        biomassSalvageRate: getValue('biomassSalvageRate') / 100,
+        electricBoilerCapex: getValue('electricBoilerCapex') * 10000,
+        electricSalvageRate: getValue('electricSalvageRate') / 100,
+        steamCapex: getValue('steamCapex') * 10000,
+        steamSalvageRate: getValue('steamSalvageRate') / 100,
+        hpCop: getValue('hpCop'),
+        gasBoilerEfficiency: getValue('gasBoilerEfficiency') / 100,
+        fuelBoilerEfficiency: getValue('fuelBoilerEfficiency') / 100,
+        coalBoilerEfficiency: getValue('coalBoilerEfficiency') / 100,
+        biomassBoilerEfficiency: getValue('biomassBoilerEfficiency') / 100,
+        electricBoilerEfficiency: getValue('electricBoilerEfficiency') / 100,
+        steamEfficiency: getValue('steamEfficiency') / 100,
+        gasPrice: getValue('gasPrice'),
+        fuelPrice: getValue('fuelPrice'),
+        coalPrice: getValue('coalPrice'),
+        biomassPrice: getValue('biomassPrice'),
+        steamPrice: getValue('steamPrice'),
+        gridFactor: document.getElementById('greenElectricityToggle').checked ? 0 : getBaseValue('gridFactor'),
+        gasFactor: getBaseValue('gasFactor'),
+        fuelFactor: getBaseValue('fuelFactor'),
+        coalFactor: getBaseValue('coalFactor'),
+        biomassFactor: getBaseValue('biomassFactor'), 
+        steamFactor: getBaseValue('steamFactor'),
+        gasCalorific: getBaseValue('gasCalorific'),
+        fuelCalorific: getBaseValue('fuelCalorific'),
+        coalCalorific: getBaseValue('coalCalorific'),
+        biomassCalorific: getBaseValue('biomassCalorific'),
+        steamCalorific: getBaseValue('steamCalorific'),
+        hpOpexCost: getValue('hpOpexCost') * 10000,
+        gasOpexCost: getValue('gasOpexCost') * 10000,
+        fuelOpexCost: getValue('fuelOpexCost') * 10000,
+        coalOpexCost: getValue('coalOpexCost') * 10000,
+        biomassOpexCost: getValue('biomassOpexCost') * 10000,
+        electricOpexCost: getValue('electricOpexCost') * 10000,
+        steamOpexCost: getValue('steamOpexCost') * 10000,
+        hybridLoadShare: getValue('hybridLoadShare') / 100,
         hybridAuxHeaterType: document.getElementById('hybridAuxHeaterType').value,
-        hybridAuxHeaterCapex: (parseFloat(document.getElementById('hybridAuxHeaterCapex').value) || 0) * 10000,
-        hybridAuxHeaterOpex: (parseFloat(document.getElementById('hybridAuxHeaterOpex').value) || 0) * 10000,
-        botAnnualRevenue: (parseFloat(document.getElementById('botAnnualRevenue').value) || 0) * 10000,
-        botAnnualEnergyCost: (parseFloat(document.getElementById('botAnnualEnergyCost').value) || 0) * 10000, 
-        botAnnualOpexCost: (parseFloat(document.getElementById('botAnnualOpexCost').value) || 0) * 10000, 
-        botEquityRatio: (parseFloat(document.getElementById('botEquityRatio').value) || 0) / 100,
-        botLoanInterestRate: (parseFloat(document.getElementById('botLoanInterestRate').value) || 0) / 100,
+        hybridAuxHeaterCapex: getValue('hybridAuxHeaterCapex') * 10000,
+        hybridAuxHeaterOpex: getValue('hybridAuxHeaterOpex') * 10000,
+        botAnnualRevenue: getValue('botAnnualRevenue') * 10000,
+        botAnnualEnergyCost: getValue('botAnnualEnergyCost') * 10000, 
+        botAnnualOpexCost: getValue('botAnnualOpexCost') * 10000, 
+        botEquityRatio: getValue('botEquityRatio') / 100,
+        botLoanInterestRate: getValue('botLoanInterestRate') / 100,
         botDepreciationYears: parseInt(document.getElementById('botDepreciationYears').value) || 10,
-        botVatRate: (parseFloat(document.getElementById('botVatRate').value) || 0) / 100,
-        botSurtaxRate: (parseFloat(document.getElementById('botSurtaxRate').value) || 0) / 100,
-        botIncomeTaxRate: (parseFloat(document.getElementById('botIncomeTaxRate').value) || 0) / 100,
+        botVatRate: getValue('botVatRate') / 100,
+        botSurtaxRate: getValue('botSurtaxRate') / 100,
+        botIncomeTaxRate: getValue('botIncomeTaxRate') / 100,
         compare: {
             gas: document.getElementById('compare_gas').checked,
             fuel: document.getElementById('compare_fuel').checked,
@@ -671,26 +506,5 @@ export function readAllInputs(showErrorCallback, alertNotifier) {
             steam: document.getElementById('compare_steam').checked,
         }
     };
-
-    if (analysisMode !== 'bot') {
-        if (annualHeatingDemandKWh <= 0 || !inputs.hpCop) {
-            if (alertNotifier) {
-                alertNotifier('成本对比模式: 请确保最终的“年总加热量”大于 0，并已填写工业热泵SPF。', 'error');
-            } else {
-                alert('成本对比模式: 请确保最终的“年总加热量”大于 0，并已填写工业热泵SPF。');
-            }
-            return null;
-        }
-    } else {
-         if (inputs.botAnnualRevenue === 0 || inputs.botAnnualEnergyCost === 0) {
-            if(alertNotifier) {
-                alertNotifier('BOT模式: “年销售收入”和“年能源成本”必须大于0。', 'error');
-            } else {
-                alert('BOT模式: “年销售收入”和“年能源成本”必须大于0。');
-            }
-            return null;
-         }
-    }
-
     return inputs;
 }
