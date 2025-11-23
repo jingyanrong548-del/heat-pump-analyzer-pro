@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     
-  <script type="module" crossorigin src="/heat-pump-analyzer-pro/assets/index-BbYxpOKs.js"></script>
-  <link rel="stylesheet" crossorigin href="/heat-pump-analyzer-pro/assets/index-DNW2z4KD.css">
+  <script type="module" crossorigin src="/heat-pump-analyzer-pro/assets/index-BK9V1FcQ.js"></script>
+  <link rel="stylesheet" crossorigin href="/heat-pump-analyzer-pro/assets/index-C3I5GAZd.css">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
@@ -846,9 +846,34 @@
         <!-- 多方案对比容器 -->
         <div id="scenario-comparison-container" class="mt-8 bg-white p-6 rounded-xl shadow-md hidden"></div>
 
-        <footer class="text-center py-6 text-sm text-gray-500 border-t mt-12">
-            <p>本程序已尽力确保正确，但不承担相关法律责任，App bug 请联系荆炎荣 15280122625。</p>
-            <p class="mt-1">注：全寿命周期成本(LCC)与ROI计算基于净现值(NPV)法，符合《建设项目经济评价方法与参数》相关规定。</p>
+<!-- 修改后的 footer -->
+        <footer class="py-8 mt-12 border-t border-gray-200 text-center">
+            <div class="max-w-4xl mx-auto px-4">
+                <!-- 法律免责部分 -->
+                <div class="mb-4">
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        <span class="font-bold text-gray-500">免责声明：</span>
+                        本工具基于行业通用的热力学模型与财务评价方法（NPV/LCC）构建。计算结果受用户输入参数及假设条件限制，仅供工程估算与方案比选参考，不作为最终工程设计或投资决策的唯一依据。开发者不对因使用本数据产生的经济损失承担法律责任。
+                    </p>
+                </div>
+                
+                <!-- 技术支持部分 -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-sm text-gray-600">
+                    <span class="font-medium">工业热泵效益分析器 V16.2</span>
+                    <span class="hidden sm:inline text-gray-300">|</span>
+                    <span class="flex items-center">
+                        技术支持与反馈：
+                        <a href="tel:15280122625" class="ml-1 text-blue-600 hover:text-blue-800 hover:underline font-semibold transition-colors">
+                            荆炎荣 152-8012-2625
+                        </a>
+                    </span>
+                </div>
+                
+                <!-- 版权/底部微标 -->
+                <p class="mt-4 text-xs text-gray-400 font-mono">
+                    © 2025 Phoenix Plan. All Rights Reserved.
+                </p>
+            </div>
         </footer>
 
         <!-- 确认模态框 -->
