@@ -53,24 +53,12 @@ var ma=Object.defineProperty;var ba=(i,t,e)=>t in i?ma(i,t,{enumerable:!0,config
                 </div>
             </div>
             <div id="text-results-container"></div>
-        `);const s=Zh(i,t);document.getElementById("text-results-container").innerHTML=s,setTimeout(()=>{Xh();const o=["工业热泵方案"],a=(i.hp.annualEnergyCost/1e4).toFixed(2),r=(i.hp.annualOpex/1e4).toFixed(2),l=[a],c=[r];i.comparisons.forEach(u=>{o.push(u.name),l.push((u.annualEnergyCost/1e4).toFixed(2)),c.push((u.annualOpex/1e4).toFixed(2))});const d=document.getElementById("costComparisonChart");d&&qh(d,o,l,c);const h=document.getElementById("lccBreakdownChart");if(h){const u=i.hp.lcc,f=[u.capex/1e4,u.energy/1e4,u.opex/1e4,u.residual/1e4];Kh(h,f)}Qh(i,t)},150),setTimeout(()=>{const o=document.getElementById("print-report-btn");if(o){const a=o.cloneNode(!0);o.parentNode.replaceChild(a,o),a.addEventListener("click",()=>window.print())}},150)}function Jh(i,t){const e=i.comparisons;if(!e||e.length===0)return"";const n=t.discountRate,s=e.filter(u=>u.irr!==null&&!isNaN(u.irr)),o=s.length>0?s.sort((u,f)=>f.irr-u.irr)[0]:e[0];let a="分析结论",r="bg-gray-50 border-gray-400",l="text-gray-800",c="📊",d="";o.irr>n?(a="✅ 推荐投资",r="bg-green-50 border-green-500",l="text-green-800",c="🚀",d=`
-            该项目具有显著的经济效益。与 <strong>${o.name}</strong> 相比，工业热泵方案的内部收益率 (IRR) 高达 <span class="text-green-600 font-bold text-lg">${wt(o.irr)}</span>，
-            远超基准收益率 (${wt(n)})。预计在 <strong>${o.paybackPeriod}</strong> 内收回全部投资成本。
-            在 ${t.lccYears} 年全生命周期内，预计可累计节省费用 <span class="font-bold">${Z(o.lccSaving)} 万元</span>。
-        `):o.irr>0?(a="⚠️ 投资回报一般",r="bg-yellow-50 border-yellow-500",l="text-yellow-800",c="⚖️",d=`
-            项目具备一定的经济可行性，但回报周期较长。与最优对比项 (${o.name}) 相比，IRR 为 <strong>${wt(o.irr)}</strong>，略低于或接近基准要求。
-            建议结合峰谷电价优化运行策略，或寻求设备初投资补贴以提升回报率。
-        `):(a="🛑 暂不推荐",r="bg-red-50 border-red-500",l="text-red-800",c="🛑",d=`
-            基于当前输入的能源价格和投资成本，该项目在财务层面暂不具备明显优势。所有对比方案的 IRR 均低于基准值。
-            建议重新核实能源价格（如电价是否过高），或考虑仅在从廉价能源（如废热）提取热量时使用。
-        `);let h="";return o.co2Reduction>0&&(h=`此外，项目环境效益显著，年减少碳排放 <strong>${ui(o.co2Reduction,1)} 吨</strong>，符合绿色低碳发展趋势。`),`
+        `);const s=Zh(i,t);document.getElementById("text-results-container").innerHTML=s,setTimeout(()=>{Xh();const o=["工业热泵方案"],a=(i.hp.annualEnergyCost/1e4).toFixed(2),r=(i.hp.annualOpex/1e4).toFixed(2),l=[a],c=[r];i.comparisons.forEach(u=>{o.push(u.name),l.push((u.annualEnergyCost/1e4).toFixed(2)),c.push((u.annualOpex/1e4).toFixed(2))});const d=document.getElementById("costComparisonChart");d&&qh(d,o,l,c);const h=document.getElementById("lccBreakdownChart");if(h){const u=i.hp.lcc,f=[u.capex/1e4,u.energy/1e4,u.opex/1e4,u.residual/1e4];Kh(h,f)}},150),setTimeout(()=>{const o=document.getElementById("print-report-btn");if(o){const a=o.cloneNode(!0);o.parentNode.replaceChild(a,o),a.addEventListener("click",()=>{const r=a.textContent;a.textContent="正在生成高清报告...",a.disabled=!0,Qh(i,t),setTimeout(()=>{window.print(),a.textContent=r,a.disabled=!1},800)})}},150)}function Jh(i,t){const e=i.comparisons;if(!e||e.length===0)return"";const n=t.discountRate,s=e.filter(u=>u.irr!==null&&!isNaN(u.irr)),o=s.length>0?s.sort((u,f)=>f.irr-u.irr)[0]:e[0];let a="分析结论",r="bg-gray-50 border-gray-400",l="text-gray-800",c="📊",d="";o.irr>n?(a="✅ 推荐投资",r="bg-green-50 border-green-500",l="text-green-800",c="🚀",d=`该项目具有显著的经济效益。与 <strong>${o.name}</strong> 相比，工业热泵方案的内部收益率 (IRR) 高达 <span class="text-green-600 font-bold text-lg">${wt(o.irr)}</span>，远超基准收益率 (${wt(n)})。预计在 <strong>${o.paybackPeriod}</strong> 内收回全部投资成本。在 ${t.lccYears} 年全生命周期内，预计可累计节省费用 <span class="font-bold">${Z(o.lccSaving)} 万元</span>。`):o.irr>0?(a="⚠️ 投资回报一般",r="bg-yellow-50 border-yellow-500",l="text-yellow-800",c="⚖️",d=`项目具备一定的经济可行性，但回报周期较长。与最优对比项 (${o.name}) 相比，IRR 为 <strong>${wt(o.irr)}</strong>，略低于或接近基准要求。建议结合峰谷电价优化运行策略，或寻求设备初投资补贴以提升回报率。`):(a="🛑 暂不推荐",r="bg-red-50 border-red-500",l="text-red-800",c="🛑",d="基于当前输入的能源价格和投资成本，该项目在财务层面暂不具备明显优势。所有对比方案的 IRR 均低于基准值。建议重新核实能源价格，或考虑仅在从廉价能源（如废热）提取热量时使用。");let h="";return o.co2Reduction>0&&(h=`此外，项目环境效益显著，年减少碳排放 <strong>${ui(o.co2Reduction,1)} 吨</strong>，符合绿色低碳发展趋势。`),`
         <div class="${r} border-l-4 p-5 rounded-r-lg mb-8 shadow-sm print-section">
             <h3 class="text-lg font-bold ${l} mb-2 flex items-center">
                 <span class="mr-2">${c}</span> 4. ${a}
             </h3>
-            <p class="text-sm text-gray-700 leading-relaxed">
-                ${d}
-            </p>
+            <p class="text-sm text-gray-700 leading-relaxed">${d}</p>
             ${h?`<p class="text-sm text-gray-600 mt-2 pt-2 border-t border-gray-200 border-dashed">🍃 ${h}</p>`:""}
         </div>
     `}function Zh(i,t){var u;const e=i.isHybridMode?i.hybridSystem:i.hp;let n=t.heatingLoad;t.operatingHours>0&&(n=(t.annualHeatingDemandKWh/t.operatingHours).toFixed(1));const s=zn(e.cost_per_steam_ton),o=`
@@ -205,7 +193,7 @@ var ma=Object.defineProperty;var ba=(i,t,e)=>t in i?ma(i,t,{enumerable:!0,config
                     </div>
                 </div>
             </div>
-        `),e.innerHTML=r+d+s.innerHTML+'<div class="mt-12 pt-4 border-t text-center text-xs text-gray-400">Powered by Phoenix Plan V16.4.0</div>'}function tu(i){const t=document.getElementById("scenario-comparison-container");t&&(t.innerHTML=`
+        `),e.innerHTML=r+d+s.innerHTML+'<div class="mt-12 pt-4 border-t text-center text-xs text-gray-400">Powered by Phoenix Plan V16.4.1</div>'}function tu(i){const t=document.getElementById("scenario-comparison-container");t&&(t.innerHTML=`
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-gray-800">多方案对比看板</h2>
             <button id="clear-scenarios-btn" class="text-sm text-red-600 hover:text-red-800 underline">清空所有方案</button>
