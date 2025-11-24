@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工业热泵经济与环境效益分析器 V16.2 (凤凰计划)</title>
+    <title>工业热泵经济与环境效益分析器 V16.5 (凤凰计划)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     
-  <script type="module" crossorigin src="/heat-pump-analyzer-pro/assets/index-CurQrGOJ.js"></script>
-  <link rel="stylesheet" crossorigin href="/heat-pump-analyzer-pro/assets/index-OyrCVGXK.css">
+  <script type="module" crossorigin src="/heat-pump-analyzer-pro/assets/index-D4qkFF9J.js"></script>
+  <link rel="stylesheet" crossorigin href="/heat-pump-analyzer-pro/assets/index-B0iORoIx.css">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
@@ -26,9 +26,9 @@
     <!-- 主应用容器 -->
     <div class="container mx-auto p-4 md:p-8 max-w-6xl">
         <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">工业热泵经济与环境效益分析器 <span class="text-lg font-normal text-blue-600">V16.2 (凤凰计划)</span></h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">工业热泵经济与环境效益分析器 <span class="text-lg font-normal text-blue-600">V16.5 (凤凰计划)</span></h1>
             <p class="mt-2 text-md text-gray-600">综合评估工业热泵(含储能)相较于传统锅炉的投资回报、全寿命周期成本(LCC)与环保优势</p>
-            <p class="mt-1 text-sm text-gray-500">发布时间: 2025年11月22日</p>
+            <p class="mt-1 text-sm text-gray-500">发布时间: 2025年11月24日</p>
         </header>
 
         <main class="bg-white p-6 rounded-xl shadow-md">
@@ -55,7 +55,7 @@
             </div>
 
             <!-- Wizard Panes -->
-           <div id="wizard-panes" class="space-y-8 wizard-content-area">
+            <div id="wizard-panes" class="space-y-8 wizard-content-area">
                 <!-- Step 1 Pane: 项目基础 -->
                 <div id="step-pane-1" class="wizard-pane">
                     <section>
@@ -85,9 +85,10 @@
                             </fieldset>
                         </div>
                         
+                        <!-- 模式 A: 设计负荷 + 运行小时 -->
                         <div id="calcModeAContainer" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="heatingLoadUnit" class="block text-sm font-medium text-gray-700">制热负荷</label>
+                                <label for="heatingLoadUnit" class="block text-sm font-medium text-gray-700">制热负荷 (设计值)</label>
                                 <select id="heatingLoadUnit" class="mt-1 block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 track-change">
                                     <option value="kW" selected>kW (千瓦)</option>
                                     <option value="kcal/h">kcal/h (大卡/小时)</option>
@@ -102,9 +103,10 @@
                             </div>
                         </div>
 
-                        <div id="calcModeBContainer" class="mt-6 hidden">
+                        <!-- 模式 B: 年总热量 + 运行小时 (反推负荷) -->
+                        <div id="calcModeBContainer" class="mt-6 hidden grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="annualHeatingUnit" class="block text-sm font-medium text-gray-700">年总加热量</label>
+                                <label for="annualHeatingUnit" class="block text-sm font-medium text-gray-700">年总加热量 (能耗值)</label>
                                 <select id="annualHeatingUnit" class="mt-1 block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 track-change">
                                     <option value="kWh" selected>kWh (千瓦时)</option>
                                     <option value="KJ">KJ (千焦)</option>
@@ -117,8 +119,15 @@
                                 <input type="number" id="annualHeating" data-base-value="2000000" value="2000000" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 track-change default-param" data-validation="isPositive">
                                 <div class="error-message hidden"></div>
                             </div>
+                            <div>
+                                <!-- [新增] 模式B专用的运行小时输入框，用于反推平均负荷 -->
+                                <label for="operatingHours_B" class="block text-sm font-medium text-gray-700">年运行小时 (h/年)</label>
+                                <input type="number" id="operatingHours_B" value="2000" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 track-change" data-validation="isPositive" placeholder="用于反推平均负荷">
+                                <div class="error-message hidden"></div>
+                            </div>
                         </div>
 
+                        <!-- 模式 C: 间歇运行参数 -->
                         <div id="calcModeCContainer" class="mt-6 hidden grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label for="dailyHours" class="block text-sm font-medium text-gray-700">每天运行小时数 (h/day)</label>
@@ -782,7 +791,7 @@
             <div id="wizard-navigation" class="mt-12 pt-6 border-t flex justify-between items-center">
                 <button id="btn-reset-params" type="button" class="text-sm text-gray-500 hover:text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">恢复默认参数</button>
                 
-                <div class="flex-grow"></div> 
+                <div class="flex-grow"></div> <!-- 用于将按钮推向两端 -->
                 
                 <div class="flex items-center space-x-4">
                     <button id="prevStepBtn" type="button" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-300">
@@ -811,54 +820,39 @@
         </main>
         
         <!-- 结果容器 -->
-        <div id="results-container" class="mt-8">
+        <div id="results-container" class="mt-8 hidden opacity-50 transition-opacity duration-300">
             <div class="bg-white p-6 rounded-xl shadow-md">
                 <h2 id="results-title" class="text-2xl font-semibold mb-6 text-center">分析结果</h2>
-                <div id="results-placeholder" class="text-center text-gray-500 py-8">
+                <div id="results-placeholder" class="text-center text-gray-500 py-8 hidden">
                     <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                     <p class="mt-2">请填写参数并完成所有步骤以进行计算</p>
                 </div>
+                
+                <!-- 结果内容区：由 JS 动态填充 -->
                 <div id="results-content" class="hidden space-y-8">
-                    <!-- 新增：图表展示区 -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">年度能源与运维成本对比 (万元)</h3>
-                            <div class="relative h-64 w-full">
-                                <canvas id="costComparisonChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h3 class="text-sm font-bold text-gray-700 mb-2 text-center">工业热泵全寿命周期成本(LCC)构成</h3>
-                            <div class="relative h-64 w-full">
-                                <canvas id="lccBreakdownChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-        
-                    <!-- 原有的文本/表格结果将动态插入到这里 -->
-                    <div id="text-results-container"></div>
+                    <!-- JS will inject charts and tables here -->
                 </div>
             </div>
         </div>
 
         <!-- 多方案对比容器 -->
         <div id="scenario-comparison-container" class="mt-8 bg-white p-6 rounded-xl shadow-md hidden"></div>
-        <!-- 简易访问量统计 -->
-<div style="text-align: center; margin-top: 10px; font-size: 12px; color: #9ca3af;">
-    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    <span id="busuanzi_container_site_pv">
-        🔥 本站总访问量：<span id="busuanzi_value_site_pv" style="font-weight: bold; color: #2563eb;"></span> 次
-    </span>
-    <span id="busuanzi_container_site_uv" style="margin-left: 10px;">
-        👤 访客数：<span id="busuanzi_value_site_uv" style="font-weight: bold; color: #2563eb;"></span> 人
-    </span>
-</div>
 
-<!-- 修改后的 footer -->
         <footer class="py-8 mt-12 border-t border-gray-200 text-center">
             <div class="max-w-4xl mx-auto px-4">
+                <!-- 简易访问量统计 -->
+                <div style="text-align: center; margin-bottom: 15px; font-size: 12px; color: #9ca3af;">
+                    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+                    <span id="busuanzi_container_site_pv">
+                        🔥 本站总访问量：<span id="busuanzi_value_site_pv" style="font-weight: bold; color: #2563eb;"></span> 次
+                    </span>
+                    <span id="busuanzi_container_site_uv" style="margin-left: 10px;">
+                        👤 访客数：<span id="busuanzi_value_site_uv" style="font-weight: bold; color: #2563eb;"></span> 人
+                    </span>
+                </div>
+
                 <!-- 法律免责部分 -->
                 <div class="mb-4">
                     <p class="text-xs text-gray-400 leading-relaxed">
@@ -869,7 +863,7 @@
                 
                 <!-- 技术支持部分 -->
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-sm text-gray-600">
-                    <span class="font-medium">工业热泵效益分析器 V16.2</span>
+                    <span class="font-medium">工业热泵效益分析器 V16.5</span>
                     <span class="hidden sm:inline text-gray-300">|</span>
                     <span class="flex items-center">
                         技术支持与反馈：
