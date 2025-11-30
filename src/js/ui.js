@@ -1,5 +1,5 @@
 // src/js/ui.js
-// V19.3: Bug Fix - Steam Comparison Restored & ID Mismatch Fixed
+// V19.7 FIXED: Full File Integrity Check (Credits + Disclaimer + Auto Units)
 
 import { ENERGY_DEFAULTS, EFF_CALC_DEFAULTS } from './config.js'; 
 import { validateInput } from './ui-validator.js';
@@ -10,12 +10,22 @@ import { createCostChart, createLccChart, destroyCharts } from './ui-chart.js';
 let latestResults = null;
 const defAttr = (val) => `value="${val}" data-default="${val}"`;
 
-// --- 样式常量 (V19.1 专业平衡版) ---
+// --- 内置单位换算系数 (基准单位：MJ) ---
+const LOCAL_CONVERTERS = {
+    'MJ': 1,
+    'kJ': 0.001,
+    'kcal': 0.004186,
+    'kWh': 3.6
+};
+
+// --- 样式常量 ---
 const INPUT_STYLE = "w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-lg font-bold text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all outline-none placeholder-gray-400 h-12 shadow-sm";
 const LABEL_STYLE = "block text-sm font-bold text-gray-600 mb-2 tracking-wide";
 const GROUP_STYLE = "bg-white p-1 mb-6";
 
-// --- 1. HTML 生成器 ---
+// ==========================================
+// 1. HTML 生成器
+// ==========================================
 
 function generateProjectInputsHTML() {
     return `
@@ -23,7 +33,6 @@ function generateProjectInputsHTML() {
             <label class="${LABEL_STYLE}">项目名称</label>
             <input type="text" id="projectName" ${defAttr("示例项目")} class="${INPUT_STYLE}">
         </div>
-
         <div class="pt-6 border-t border-gray-200">
             <label class="${LABEL_STYLE} mb-4">计算模式</label>
             <div class="grid grid-cols-3 gap-3">
@@ -50,7 +59,6 @@ function generateProjectInputsHTML() {
                 </label>
             </div>
         </div>
-
         <div id="input-group-load" class="space-y-6 mt-6">
             <div>
                 <div class="flex justify-between items-center mb-2">
@@ -60,14 +68,12 @@ function generateProjectInputsHTML() {
                 <input type="number" id="heatingLoad" ${defAttr("1000")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
         </div>
-
         <div id="input-group-hours-a" class="space-y-6 mt-6">
             <div>
                 <label class="${LABEL_STYLE}">年运行小时 (h)</label>
                 <input type="number" id="operatingHours" ${defAttr("2000")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
         </div>
-
         <div id="input-group-total" class="space-y-6 mt-6 hidden">
             <div>
                 <div class="flex justify-between items-center mb-2">
@@ -81,7 +87,6 @@ function generateProjectInputsHTML() {
                 <input type="number" id="operatingHours_B" ${defAttr("2000")} class="${INPUT_STYLE}" placeholder="自动计算">
             </div>
         </div>
-
         <div id="input-group-daily" class="space-y-6 mt-6 hidden">
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -103,9 +108,7 @@ function generateProjectInputsHTML() {
 
 function generateSchemeInputsHTML() {
     return `
-        <div class="hidden">
-            <input type="radio" id="modeStandard" name="schemeAMode" value="standard" checked>
-        </div>
+        <div class="hidden"><input type="radio" id="modeStandard" name="schemeAMode" value="standard" checked></div>
         <div class="grid grid-cols-2 gap-4 mb-8">
             <div>
                 <label class="${LABEL_STYLE}">热泵投资 (万)</label>
@@ -156,7 +159,6 @@ function generateOperatingInputsHTML() {
             </label>
             <input type="number" id="hpCop" ${defAttr(ENERGY_DEFAULTS.hp.cop)} step="0.1" class="${INPUT_STYLE} !text-2xl !text-blue-700" data-validation="isStrictlyPositive">
         </div>
-
         <div class="pt-6 border-t border-dashed border-gray-200 space-y-6">
              <div>
                 <div class="flex justify-between items-center mb-4">
@@ -165,25 +167,19 @@ function generateOperatingInputsHTML() {
                 </div>
                 <div id="priceTiersContainer" class="space-y-3 mb-4"></div>
                 <input type="hidden" id="simple_avg_price" value="${ENERGY_DEFAULTS.electric.price}" class="track-change"> 
-                
                 <label class="flex items-center cursor-pointer p-3 bg-green-50/50 border border-green-200 rounded-xl hover:border-green-300 transition">
                     <input type="checkbox" id="greenPowerToggle" class="w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 track-change">
                     <span class="ml-3 text-base font-bold text-green-800">启用绿电 (零碳模式)</span>
                 </label>
              </div>
-
              <div class="grid grid-cols-2 gap-4">
-                 <div class="related-to-gas">
-                    <label class="${LABEL_STYLE}">气价 (元/m³)</label>
-                    <input type="number" id="gasPrice" ${defAttr(ENERGY_DEFAULTS.gas.price)} class="${INPUT_STYLE}">
-                </div>
-                <div class="related-to-coal"><label class="${LABEL_STYLE}">煤价 (元/t)</label><input type="number" id="coalPrice" ${defAttr(ENERGY_DEFAULTS.coal.price)} class="${INPUT_STYLE}"></div>
-                <div class="related-to-steam"><label class="${LABEL_STYLE}">汽价 (元/t)</label><input type="number" id="steamPrice" ${defAttr(ENERGY_DEFAULTS.steam.price)} class="${INPUT_STYLE}"></div>
-                <div class="related-to-fuel"><label class="${LABEL_STYLE}">油价 (元/t)</label><input type="number" id="fuelPrice" ${defAttr(ENERGY_DEFAULTS.fuel.price)} class="${INPUT_STYLE}"></div>
-                <div class="related-to-biomass"><label class="${LABEL_STYLE}">生物质 (元/t)</label><input type="number" id="biomassPrice" ${defAttr(ENERGY_DEFAULTS.biomass.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-gas"><label class="${LABEL_STYLE}">气价 (元/m³)</label><input type="number" id="gasPrice" ${defAttr(ENERGY_DEFAULTS.gas.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-coal"><label class="${LABEL_STYLE}">煤价 (元/t)</label><input type="number" id="coalPrice" ${defAttr(ENERGY_DEFAULTS.coal.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-steam"><label class="${LABEL_STYLE}">汽价 (元/t)</label><input type="number" id="steamPrice" ${defAttr(ENERGY_DEFAULTS.steam.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-fuel"><label class="${LABEL_STYLE}">油价 (元/t)</label><input type="number" id="fuelPrice" ${defAttr(ENERGY_DEFAULTS.fuel.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-biomass"><label class="${LABEL_STYLE}">生物质 (元/t)</label><input type="number" id="biomassPrice" ${defAttr(ENERGY_DEFAULTS.biomass.price)} class="${INPUT_STYLE}"></div>
              </div>
         </div>
-
         <div class="pt-6 border-t border-dashed border-gray-200">
             <label class="${LABEL_STYLE} mb-4">锅炉效率 (%)</label>
             <div class="space-y-3">
@@ -199,20 +195,14 @@ function generateOperatingInputsHTML() {
                         </div>
                     </div>
                 `).join('')}
-                <div class="hidden">
-                    <input type="number" id="electricBoilerEfficiency" value="98">
-                    <input type="number" id="steamEfficiency" value="98">
-                </div>
+                <div class="hidden"><input type="number" id="electricBoilerEfficiency" value="98"><input type="number" id="steamEfficiency" value="98"></div>
             </div>
         </div>
-
         <div class="mt-6 pt-4 border-t border-dashed border-gray-200">
             <details class="group">
                 <summary class="flex justify-between items-center font-bold cursor-pointer list-none text-gray-500 hover:text-blue-600 transition-colors text-base select-none py-2 bg-gray-50 rounded-lg px-3">
-                    <span>⚙️ 高级能源参数</span>
-                    <span class="transition group-open:rotate-180">
-                        <svg fill="none" height="20" width="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
-                    </span>
+                    <span>⚙️ 高级能源参数 (单位换算)</span>
+                    <span class="transition group-open:rotate-180"><svg fill="none" height="20" width="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></span>
                 </summary>
                 <div class="text-gray-500 mt-4 grid grid-cols-1 gap-3 animate-fadeIn">
                     <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-center border border-gray-200">
@@ -225,21 +215,27 @@ function generateOperatingInputsHTML() {
                         <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-center border border-gray-200 related-to-${k}">
                             <span class="text-sm font-bold text-gray-700">${n} (${k})</span>
                             <div class="flex items-center gap-2">
-                                <div class="flex items-center"><span class="text-xs mr-1 font-bold">热值</span><input id="${k}Calorific" type="number" ${defAttr(ENERGY_DEFAULTS[k].calorific)} class="w-16 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-sm">
-                                    <select id="${k}CalorificUnit" class="ml-1 p-1 border border-gray-300 rounded bg-white text-xs font-bold w-16 track-change">
+                                <div class="flex items-center">
+                                    <span class="text-xs mr-1 font-bold">热值</span>
+                                    <input id="${k}Calorific" type="number" ${defAttr(ENERGY_DEFAULTS[k].calorific)} class="w-16 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-sm">
+                                    <select id="${k}CalorificUnit" class="ml-1 p-1 border border-gray-300 rounded bg-white text-xs font-bold w-16 track-change unit-converter" data-target-input="${k}Calorific">
                                         <option value="MJ" selected>MJ</option>
                                         <option value="kcal">kcal</option>
                                         <option value="kWh">kWh</option>
                                     </select>
+                                    <span class="text-xs font-bold text-gray-500 ml-1">/${u}</span>
                                 </div>
-                                <div class="flex items-center"><span class="text-xs mr-1 font-bold">排放</span><input id="${k}Factor" type="number" ${defAttr(ENERGY_DEFAULTS[k].factor)} class="w-16 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-sm"></div>
+                                <div class="flex items-center">
+                                    <span class="text-xs mr-1 font-bold">排放</span>
+                                    <input id="${k}Factor" type="number" ${defAttr(ENERGY_DEFAULTS[k].factor)} class="w-16 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-sm">
+                                    <span class="text-xs font-bold text-gray-500 ml-1">kg/${u}</span>
+                                </div>
                             </div>
                         </div>`;
                     }).join('')}
                 </div>
             </details>
         </div>
-
         <div class="pt-6 border-t border-dashed border-gray-200">
             <label class="${LABEL_STYLE} mb-4">运维成本 (万/年)</label>
             <div class="space-y-4">
@@ -258,6 +254,10 @@ function generateOperatingInputsHTML() {
                     </div>
                 `).join('')}
             </div>
+        </div>
+        <div class="mt-8 pt-4 border-t border-gray-200 text-center pb-4">
+            <p class="text-sm font-bold text-gray-600">编者：荆炎荣 </p>
+            <p class="text-xs text-gray-400 mt-2 leading-tight px-4">免责声明：本工具计算结果仅供参考，不作为最终投资决策依据。</p>
         </div>
     `;
 }
@@ -287,7 +287,9 @@ function generateFinancialInputsHTML() {
     `;
 }
 
-// --- 初始化与逻辑 ---
+// ==========================================
+// 2. 初始化与逻辑处理
+// ==========================================
 
 export function initializeUI(handleCalculate) {
     injectAccordionContent('accordion-project', '1. 项目与负荷', generateProjectInputsHTML());
@@ -297,6 +299,7 @@ export function initializeUI(handleCalculate) {
 
     Dashboard.initializeDashboard();
     setupInputMonitoring(); 
+    setupUnitAutoConverters(); // 启动单位自动换算
 
     const calcBtn = document.getElementById('calculateBtn');
     if (calcBtn) calcBtn.addEventListener('click', () => handleCalculate());
@@ -343,6 +346,33 @@ export function initializeUI(handleCalculate) {
     }
     
     window.updateSimplePriceTier = function(val) {}; 
+}
+
+// 自动换算逻辑
+function setupUnitAutoConverters() {
+    document.querySelectorAll('.unit-converter').forEach(select => {
+        select.dataset.prevUnit = select.value;
+        select.addEventListener('change', (e) => {
+            const targetId = select.dataset.targetInput;
+            const inputEl = document.getElementById(targetId);
+            const newUnit = select.value;
+            const oldUnit = select.dataset.prevUnit;
+            
+            if (inputEl && inputEl.value) {
+                const val = parseFloat(inputEl.value);
+                const factorOld = LOCAL_CONVERTERS[oldUnit];
+                const factorNew = LOCAL_CONVERTERS[newUnit];
+                
+                if (factorOld && factorNew) {
+                    const newVal = val * (factorOld / factorNew);
+                    inputEl.value = parseFloat(newVal.toPrecision(5));
+                    inputEl.classList.add('text-blue-600', 'font-bold');
+                    inputEl.classList.remove('text-gray-900');
+                }
+            }
+            select.dataset.prevUnit = newUnit;
+        });
+    });
 }
 
 function setupInputMonitoring() {
@@ -435,7 +465,7 @@ function setupExportButton() {
     if (btn) btn.addEventListener('click', () => { if (!latestResults) { alert("请先进行计算"); return; } buildPrintReport(latestResults); setTimeout(() => { window.print(); }, 500); });
 }
 
-// [FIXED] 核心读取函数 - 支持单位读取与 Steam/绿电 逻辑
+// 核心功能：数据读取
 export function readAllInputs(showErrorCallback) {
     const getVal = (id) => { const el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; };
     const getValByUnit = (id, unitId) => {
@@ -479,7 +509,6 @@ export function readAllInputs(showErrorCallback) {
         gasBoilerCapex: getVal('gasBoilerCapex') * 10000, gasSalvageRate: 0.05, gasBoilerEfficiency: getVal('gasBoilerEfficiency') / 100, gasPrice: getVal('gasPrice'), gasOpexCost: getVal('gasOpexCost') * 10000,
         fuelBoilerCapex: getVal('fuelBoilerCapex') * 10000, fuelSalvageRate: 0.05, fuelBoilerEfficiency: getVal('fuelBoilerEfficiency') / 100, fuelPrice: getVal('fuelPrice'), fuelOpexCost: getVal('fuelOpexCost') * 10000,
         coalBoilerCapex: getVal('coalBoilerCapex') * 10000, coalSalvageRate: 0.05, coalBoilerEfficiency: getVal('coalBoilerEfficiency') / 100, coalPrice: getVal('coalPrice'), coalOpexCost: getVal('coalOpexCost') * 10000,
-        // [FIXED] 修正 Steam 的 ID 读取，确保蒸汽方案能被正确计算
         steamCapex: getVal('steamBoilerCapex') * 10000, steamSalvageRate: 0, steamEfficiency: 0.98, steamPrice: getVal('steamPrice'), steamOpexCost: getVal('steamOpexCost') * 10000,
         compare: { gas: document.getElementById('compare_gas').checked, coal: document.getElementById('compare_coal').checked, fuel: document.getElementById('compare_fuel').checked, electric: document.getElementById('compare_electric').checked, steam: document.getElementById('compare_steam').checked, biomass: document.getElementById('compare_biomass').checked },
         biomassBoilerCapex: getVal('biomassBoilerCapex') * 10000, biomassSalvageRate: 0, biomassBoilerEfficiency: getVal('biomassBoilerEfficiency')/100, biomassPrice: getVal('biomassPrice'), biomassOpexCost: getVal('biomassOpexCost') * 10000,
@@ -487,13 +516,12 @@ export function readAllInputs(showErrorCallback) {
     };
 }
 
-// [FIXED] 核心渲染函数 (Dashboard Rendering)
+// 核心功能：数据渲染
 export function renderDashboard(results) {
     latestResults = results;
     Dashboard.showResultsContent(); Dashboard.scrollToResults(); Dashboard.setExportButtonState(true);
     const bestComp = results.comparisons.sort((a, b) => b.annualSaving - a.annualSaving)[0];
     
-    // 响应式字号，防止溢出
     const kpiClass = "text-3xl md:text-4xl xl:text-5xl font-black text-gray-800 mt-2 md:mt-3 tracking-tighter truncate";
 
     if (bestComp) {
@@ -584,7 +612,12 @@ export function renderDashboard(results) {
                     <br><br>
                     全生命周期（${results.inputs.lccYears}年）累计节省 <strong>${fWan(bestComp.lccSaving)} 万元</strong>。动态回收期为 ${bestComp.dynamicPBP} 年。
                 </p>
-            </div>`;
+            </div>
+            <div class="mt-8 pt-4 border-t border-gray-200 text-center text-gray-400 text-xs">
+                <p class="font-bold">编者：荆炎荣 </p>
+                <p class="mt-1">免责声明：本工具计算结果仅供参考，不作为最终投资决策依据。具体参数请咨询专业设计院。</p>
+            </div>
+        `;
     }
 }
 
