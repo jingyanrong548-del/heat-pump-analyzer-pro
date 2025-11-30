@@ -1,5 +1,5 @@
 // src/js/ui-dashboard.js
-// 负责 V17.0 Dashboard 布局的核心交互逻辑 (侧边栏折叠、Tabs切换、导出按钮状态、全局通知等)
+// V18.3: Mobile Sidebar Logic & Responsive Interactions
 
 // --- 状态管理 ---
 const state = {
@@ -19,7 +19,7 @@ const state = {
 export function initializeDashboard() {
     setupAccordion();
     setupTabs();
-    setupMobileSidebar();
+    setupMobileSidebar(); // [新增] 初始化移动端侧边栏逻辑
     
     // 初始化时，触发一次Tab状态更新，确保正确显示
     switchTab(state.activeTab);
@@ -39,9 +39,6 @@ function setupAccordion() {
             
             // 切换当前面板状态
             toggleAccordionItem(header, content, !isExpanded);
-            
-            // 可选：如果希望由手风琴效果（展开一个时关闭其他），可以在这里遍历关闭其他
-            // 目前保持独立折叠，允许用户同时打开多个参数组
         });
     });
 }
@@ -51,7 +48,6 @@ function toggleAccordionItem(header, content, shouldOpen) {
     
     if (shouldOpen) {
         content.classList.remove('hidden');
-        // 稍微延迟添加 open 类以触发 CSS 动画 (如果有)
         requestAnimationFrame(() => {
             content.classList.add('open');
             header.setAttribute('aria-expanded', 'true');
@@ -59,18 +55,16 @@ function toggleAccordionItem(header, content, shouldOpen) {
     } else {
         content.classList.remove('open');
         header.setAttribute('aria-expanded', 'false');
-        // 等待动画结束后隐藏 (这里简化处理直接隐藏，可配合 CSS transition)
         setTimeout(() => {
             if (header.getAttribute('aria-expanded') === 'false') {
                 content.classList.add('hidden');
             }
-        }, 300); // 需与 CSS duration 匹配
+        }, 300); 
     }
 }
 
 /**
- * 手动展开指定的 Accordion (供外部调用，例如校验出错时定位)
- * @param {string} groupId - 如 'accordion-project'
+ * 手动展开指定的 Accordion
  */
 export function openAccordionGroup(groupId) {
     const container = document.getElementById(groupId);
@@ -81,7 +75,6 @@ export function openAccordionGroup(groupId) {
     
     if (header && content) {
         toggleAccordionItem(header, content, true);
-        // 滚动到该位置
         setTimeout(() => {
             header.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
@@ -117,10 +110,8 @@ export function switchTab(tabId) {
 
     // 2. 更新 Content 状态
     document.querySelectorAll('.tab-content').forEach(content => {
-        // content 的 ID 约定为 "tab-{tabId}"
         if (content.id === `tab-${tabId}`) {
             content.classList.remove('hidden');
-            // 触发可能存在的图表重绘 (Chart.js 有时在 hidden 容器中渲染会有大小问题)
             triggerChartResize(content);
         } else {
             content.classList.add('hidden');
@@ -130,27 +121,59 @@ export function switchTab(tabId) {
     state.activeTab = tabId;
 }
 
-// 辅助：当 Tab 切换显示时，触发内部 Canvas 的 resize
 function triggerChartResize(container) {
     const canvases = container.querySelectorAll('canvas');
     canvases.forEach(canvas => {
-        // 手动触发 window resize 事件通常能强制刷新布局
         window.dispatchEvent(new Event('resize'));
     });
 }
 
 /**
- * 3. 移动端侧边栏逻辑 (预留)
+ * 3. [新增] 移动端侧边栏逻辑
+ * 控制“参数配置”抽屉的滑出与收起
  */
 function setupMobileSidebar() {
-    // 预留位置
+    const sidebar = document.getElementById('input-sidebar');
+    const openBtn = document.getElementById('mobile-open-config');     // 底部悬浮按钮
+    const closeBtn = document.getElementById('mobile-sidebar-close');  // 抽屉右上角关闭按钮
+    const calcBtn = document.getElementById('calculateBtn');           // 运行计算按钮
+
+    if (!sidebar) return;
+
+    // 切换函数：通过 CSS class 控制 translate
+    const toggleSidebar = (show) => {
+        if (show) {
+            sidebar.classList.remove('translate-y-full');
+            sidebar.classList.add('translate-y-0');
+            // 防止背景滚动
+            document.body.style.overflow = 'hidden';
+        } else {
+            sidebar.classList.remove('translate-y-0');
+            sidebar.classList.add('translate-y-full');
+            // 恢复背景滚动
+            document.body.style.overflow = '';
+        }
+    };
+
+    // 绑定事件
+    if (openBtn) openBtn.addEventListener('click', () => toggleSidebar(true));
+    if (closeBtn) closeBtn.addEventListener('click', () => toggleSidebar(false));
+
+    // 移动端体验优化：点击“运行计算”后自动收起抽屉，并滚动到结果顶部
+    if (calcBtn) {
+        calcBtn.addEventListener('click', () => {
+            if (window.innerWidth < 768) { // 仅在移动端生效
+                toggleSidebar(false);
+                setTimeout(() => scrollToResults(), 300); // 等待抽屉收起动画结束
+            }
+        });
+    }
 }
 
 /**
  * 4. 界面状态更新辅助函数
  */
 
-// 更新导出按钮状态
 export function setExportButtonState(isEnabled) {
     const btn = document.getElementById('export-report-btn');
     if (!btn) return;
@@ -166,17 +189,18 @@ export function setExportButtonState(isEnabled) {
     }
 }
 
-// 滚动到结果区域
+// 滚动到结果区域 (适配新布局)
 export function scrollToResults() {
     const mainArea = document.getElementById('main-results-area');
-    if (mainArea && window.innerWidth < 1024) { // 仅在移动端/平板端自动滚
+    if (mainArea) {
+        // 对于新的 Flex 布局，在移动端通常是 Window 滚动，或者 Main 容器滚动
+        // 这里尝试将主要结果区滚动到视口顶部
         mainArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 兜底：如果是 body 滚动
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-/**
- * 在结果区域显示 Empty State (占位符)
- */
 export function showResultsPlaceholder() {
     const placeholder = document.getElementById('report-placeholder');
     const content = document.getElementById('report-content');
@@ -184,16 +208,12 @@ export function showResultsPlaceholder() {
     if (placeholder) placeholder.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     
-    // 重置卡片数据
     updateResultCard('annual-saving', '-- 万');
     updateResultCard('irr', '-- %');
     updateResultCard('pbp', '-- 年');
     updateResultCard('co2-reduction', '-- 吨');
 }
 
-/**
- * 显示实际结果内容
- */
 export function showResultsContent() {
     const placeholder = document.getElementById('report-placeholder');
     const content = document.getElementById('report-content');
@@ -201,60 +221,47 @@ export function showResultsContent() {
     if (placeholder) placeholder.classList.add('hidden');
     if (content) content.classList.remove('hidden');
     
-    // 重新校准 Tab
     switchTab(state.activeTab);
 }
 
-/**
- * 更新单个结果卡片的数值
- */
 export function updateResultCard(key, value, colorClass = null) {
     const el = document.getElementById(`card-${key}`);
     if (el) {
         el.textContent = value;
         if (colorClass) {
-            el.className = el.className.replace(/text-\w+-\d+/, colorClass);
+            // 清除旧的颜色类 (简单粗暴但有效)
+            el.className = el.className.replace(/text-(green|yellow|red|gray)-\d+/, '');
+            el.classList.add(...colorClass.split(' '));
         }
     }
 }
 
-/**
- * [新增] 显示全局通知
- * @param {string} message - 通知内容
- * @param {'success'|'error'|'info'} type - 通知类型
- * @param {number} duration - 显示时长 (毫秒)
- */
 export function showGlobalNotification(message, type = 'info', duration = 3000) {
     const notifier = document.getElementById('global-notifier');
     const notifierText = document.getElementById('global-notifier-text');
-    const iconSuccess = document.getElementById('global-notifier-icon-success');
-    const iconError = document.getElementById('global-notifier-icon-error');
     
     if (!notifier || !notifierText) return;
 
     if (state.notifierTimeout) clearTimeout(state.notifierTimeout);
 
     notifierText.textContent = message;
-    notifier.className = 'fixed top-5 right-5 z-50 max-w-sm p-4 rounded-lg shadow-lg flex items-center transition-opacity transition-transform duration-300';
     
-    if (iconSuccess) iconSuccess.classList.add('hidden');
-    if (iconError) iconError.classList.add('hidden');
+    // 重置基础样式，根据类型添加颜色
+    notifier.className = 'fixed top-8 right-8 z-[100] max-w-lg p-6 rounded-2xl shadow-2xl transition-all duration-300 transform';
     
     if (type === 'success') {
         notifier.classList.add('bg-green-100', 'text-green-800');
-        if (iconSuccess) iconSuccess.classList.remove('hidden');
     } else if (type === 'error') {
         notifier.classList.add('bg-red-100', 'text-red-800');
-        if (iconError) iconError.classList.remove('hidden');
     } else {
         notifier.classList.add('bg-blue-100', 'text-blue-800');
-        if (iconSuccess) iconSuccess.classList.remove('hidden');
     }
     
-    notifier.classList.remove('hidden', 'opacity-0', 'translate-x-full');
+    // 显示
+    notifier.classList.remove('translate-x-full', 'hidden');
     
     state.notifierTimeout = setTimeout(() => {
-        notifier.classList.add('opacity-0', 'translate-x-full');
+        notifier.classList.add('translate-x-full');
         setTimeout(() => notifier.classList.add('hidden'), 300);
     }, duration);
 }

@@ -1,31 +1,43 @@
 // src/js/ui-chart.js
-// V18.0 Super Sized Charts: Optimized for Kiosk/Retina Displays
+// V18.3: Responsive Charts (Mobile Optimized vs Kiosk Mode)
 
 // 确保 Chart.js 已在 index.html 中通过 CDN 引入
-// import Chart from 'chart.js/auto'; // 如使用 npm 模式请取消注释
+// import Chart from 'chart.js/auto'; 
 
-// --- 1. 全局配置 (2X 巨幕化) ---
+// --- 0. 响应式侦测 ---
+const isMobile = window.innerWidth < 768; // 手机端断点
+
+// --- 1. 全局配置 (动态字号) ---
 // 基础字体
 Chart.defaults.font.family = "'Inter', 'Noto Sans SC', sans-serif";
-Chart.defaults.font.size = 20; // [关键] 默认字号从 12px 提升至 20px
+// 手机端用 11px，巨幕端用 20px
+Chart.defaults.font.size = isMobile ? 11 : 20; 
 Chart.defaults.color = '#475569'; // Slate-600
 
 // 坐标轴网格
 Chart.defaults.scale.grid.color = '#e2e8f0'; // Slate-200
-Chart.defaults.scale.grid.lineWidth = 1.5;   // 加粗网格线
+Chart.defaults.scale.grid.lineWidth = isMobile ? 1 : 1.5;
 
 // 图例 (Legend)
-Chart.defaults.plugins.legend.labels.font = { size: 22, weight: 'bold' };
-Chart.defaults.plugins.legend.labels.boxWidth = 24; // 色块变大
-Chart.defaults.plugins.legend.labels.padding = 30;  // 间距变大
+Chart.defaults.plugins.legend.labels.font = { 
+    size: isMobile ? 12 : 22, 
+    weight: 'bold' 
+};
+Chart.defaults.plugins.legend.labels.boxWidth = isMobile ? 12 : 24; 
+Chart.defaults.plugins.legend.labels.padding = isMobile ? 15 : 30;
 
 // 提示框 (Tooltip)
-Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)'; // Slate-900 (更深)
-Chart.defaults.plugins.tooltip.titleFont = { size: 24, weight: 'bold' };
-Chart.defaults.plugins.tooltip.bodyFont = { size: 20 };
-Chart.defaults.plugins.tooltip.padding = 20;       // 内边距翻倍
-Chart.defaults.plugins.tooltip.cornerRadius = 12;  // 圆角加大
-Chart.defaults.plugins.tooltip.boxPadding = 8;     // 色块与文字间距
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)'; // Slate-900
+Chart.defaults.plugins.tooltip.titleFont = { 
+    size: isMobile ? 14 : 24, 
+    weight: 'bold' 
+};
+Chart.defaults.plugins.tooltip.bodyFont = { 
+    size: isMobile ? 12 : 20 
+};
+Chart.defaults.plugins.tooltip.padding = isMobile ? 10 : 20;
+Chart.defaults.plugins.tooltip.cornerRadius = isMobile ? 6 : 12;
+Chart.defaults.plugins.tooltip.boxPadding = isMobile ? 4 : 8;
 
 // --- 2. 品牌配色 (High Contrast) ---
 const COLORS = {
@@ -87,15 +99,15 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                     label: '能源成本',
                     data: energyCosts,
                     backgroundColor: energyBgColors,
-                    borderRadius: 6, // 圆角加大
+                    borderRadius: isMobile ? 3 : 6,
                     stack: 'Stack 0',
-                    barPercentage: 0.5, // 柱子稍微变宽
+                    barPercentage: 0.5,
                 },
                 {
                     label: '运维成本',
                     data: opexCosts,
                     backgroundColor: COLORS.opex,
-                    borderRadius: 6,
+                    borderRadius: isMobile ? 3 : 6,
                     stack: 'Stack 0',
                     barPercentage: 0.5,
                 }
@@ -111,7 +123,11 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
             plugins: {
                 legend: {
                     position: 'top',
-                    align: 'end'
+                    align: 'end',
+                    labels: {
+                        // 移动端图例字号调整
+                        font: { size: isMobile ? 11 : 22, weight: 'bold' }
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -131,25 +147,33 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                             return '总计: ' + total.toFixed(2) + ' 万';
                         }
                     },
-                    footerFont: { size: 22, weight: 'bold' } // Footer 字体特大
+                    footerFont: { size: isMobile ? 12 : 22, weight: 'bold' }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     title: { 
-                        display: true, 
+                        display: !isMobile, // 手机端隐藏Y轴标题以节省空间
                         text: '万元/年',
                         font: { size: 18, weight: 'bold' } 
                     },
                     stacked: true,
                     border: { display: false },
-                    ticks: { padding: 10 }
+                    ticks: { 
+                        padding: isMobile ? 5 : 10,
+                        font: { size: isMobile ? 10 : 14 }
+                    }
                 },
                 x: { 
                     stacked: true,
                     grid: { display: false },
-                    ticks: { font: { size: 18, weight: 'bold' } } // X轴标签加粗加大
+                    ticks: { 
+                        font: { size: isMobile ? 11 : 18, weight: 'bold' },
+                        // 手机端如果标签太多，自动旋转
+                        maxRotation: isMobile ? 45 : 0,
+                        minRotation: isMobile ? 45 : 0
+                    } 
                 }
             }
         }
@@ -177,7 +201,7 @@ export function createLccChart(ctx, data) {
                     '#10b981'  // Emerald-500
                 ],
                 borderWidth: 0,
-                hoverOffset: 20 // 悬停偏移量加大
+                hoverOffset: isMobile ? 10 : 20
             }]
         },
         options: {
@@ -186,8 +210,11 @@ export function createLccChart(ctx, data) {
             cutout: '60%',
             plugins: {
                 legend: {
-                    position: 'right',
-                    labels: { padding: 25 }
+                    position: isMobile ? 'bottom' : 'right', // 手机端图例放底部
+                    labels: { 
+                        padding: isMobile ? 15 : 25,
+                        font: { size: isMobile ? 12 : 22, weight: 'bold' }
+                    }
                 },
                 tooltip: {
                     callbacks: {
