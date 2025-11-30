@@ -1,79 +1,58 @@
 // src/js/ui-chart.js
-// V18.3: Responsive Charts (Mobile Optimized vs Kiosk Mode)
+// V19.2: Responsive Charts (Fixed Cutoff Issue)
 
-// 确保 Chart.js 已在 index.html 中通过 CDN 引入
+const isMobile = window.innerWidth < 768;
+
+// 字号回退策略：不再使用 24px，改回 16px (桌面) / 11px (手机)
+const BASE_FONT_SIZE = isMobile ? 11 : 16;
+const LEGEND_FONT_SIZE = isMobile ? 12 : 18;
+const TITLE_FONT_SIZE = isMobile ? 14 : 20;
+
 // import Chart from 'chart.js/auto'; 
 
-// --- 0. 响应式侦测 ---
-const isMobile = window.innerWidth < 768; // 手机端断点
-
-// --- 1. 全局配置 (动态字号) ---
-// 基础字体
 Chart.defaults.font.family = "'Inter', 'Noto Sans SC', sans-serif";
-// 手机端用 11px，巨幕端用 20px
-Chart.defaults.font.size = isMobile ? 11 : 20; 
-Chart.defaults.color = '#475569'; // Slate-600
+Chart.defaults.font.size = BASE_FONT_SIZE; 
+Chart.defaults.color = '#475569'; 
 
-// 坐标轴网格
-Chart.defaults.scale.grid.color = '#e2e8f0'; // Slate-200
-Chart.defaults.scale.grid.lineWidth = isMobile ? 1 : 1.5;
+Chart.defaults.scale.grid.color = '#e2e8f0'; 
+Chart.defaults.scale.grid.lineWidth = 1;
 
-// 图例 (Legend)
 Chart.defaults.plugins.legend.labels.font = { 
-    size: isMobile ? 12 : 22, 
+    size: LEGEND_FONT_SIZE, 
     weight: 'bold' 
 };
-Chart.defaults.plugins.legend.labels.boxWidth = isMobile ? 12 : 24; 
-Chart.defaults.plugins.legend.labels.padding = isMobile ? 15 : 30;
+Chart.defaults.plugins.legend.labels.boxWidth = isMobile ? 12 : 20;
+Chart.defaults.plugins.legend.labels.padding = isMobile ? 10 : 25;
 
-// 提示框 (Tooltip)
-Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)'; // Slate-900
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)';
 Chart.defaults.plugins.tooltip.titleFont = { 
-    size: isMobile ? 14 : 24, 
+    size: TITLE_FONT_SIZE, 
     weight: 'bold' 
 };
 Chart.defaults.plugins.tooltip.bodyFont = { 
-    size: isMobile ? 12 : 20 
+    size: BASE_FONT_SIZE 
 };
-Chart.defaults.plugins.tooltip.padding = isMobile ? 10 : 20;
-Chart.defaults.plugins.tooltip.cornerRadius = isMobile ? 6 : 12;
-Chart.defaults.plugins.tooltip.boxPadding = isMobile ? 4 : 8;
+Chart.defaults.plugins.tooltip.padding = 12;
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
-// --- 2. 品牌配色 (High Contrast) ---
 const COLORS = {
-    hp: { fill: 'rgba(37, 99, 235, 0.9)', border: '#2563eb' }, // Blue-600
-    gas: { fill: 'rgba(234, 88, 12, 0.9)', border: '#ea580c' }, // Orange-600
-    fuel: { fill: 'rgba(220, 38, 38, 0.9)', border: '#dc2626' }, // Red-600
-    coal: { fill: 'rgba(71, 85, 105, 0.9)', border: '#475569' }, // Slate-600
-    biomass: { fill: 'rgba(22, 163, 74, 0.9)', border: '#16a34a' }, // Green-600
-    electric: { fill: 'rgba(147, 51, 234, 0.9)', border: '#9333ea' }, // Purple-600
-    steam: { fill: 'rgba(8, 145, 178, 0.9)', border: '#0891b2' },  // Cyan-600
-    opex: '#f59e0b' // Amber-500
+    hp: { fill: 'rgba(37, 99, 235, 0.9)', border: '#2563eb' }, 
+    gas: { fill: 'rgba(234, 88, 12, 0.9)', border: '#ea580c' }, 
+    fuel: { fill: 'rgba(220, 38, 38, 0.9)', border: '#dc2626' }, 
+    coal: { fill: 'rgba(71, 85, 105, 0.9)', border: '#475569' }, 
+    biomass: { fill: 'rgba(22, 163, 74, 0.9)', border: '#16a34a' }, 
+    electric: { fill: 'rgba(147, 51, 234, 0.9)', border: '#9333ea' }, 
+    steam: { fill: 'rgba(8, 145, 178, 0.9)', border: '#0891b2' },  
+    opex: '#f59e0b' 
 };
 
-// --- 实例缓存 ---
-let charts = {
-    cost: null,
-    lcc: null
-};
+let charts = { cost: null, lcc: null };
 
-/**
- * 销毁现有图表
- */
 export function destroyCharts() {
-    if (charts.cost) {
-        charts.cost.destroy();
-        charts.cost = null;
-    }
-    if (charts.lcc) {
-        charts.lcc.destroy();
-        charts.lcc = null;
-    }
+    if (charts.cost) { charts.cost.destroy(); charts.cost = null; }
+    if (charts.lcc) { charts.lcc.destroy(); charts.lcc = null; }
 }
 
-/**
- * 1. 创建年度成本对比柱状图 (堆叠柱状图)
- */
 export function createCostChart(ctx, labels, energyCosts, opexCosts) {
     const getColor = (name) => {
         if (!name) return '#cbd5e1';
@@ -99,36 +78,26 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                     label: '能源成本',
                     data: energyCosts,
                     backgroundColor: energyBgColors,
-                    borderRadius: isMobile ? 3 : 6,
+                    borderRadius: 4,
                     stack: 'Stack 0',
-                    barPercentage: 0.5,
+                    barPercentage: 0.6,
                 },
                 {
                     label: '运维成本',
                     data: opexCosts,
                     backgroundColor: COLORS.opex,
-                    borderRadius: isMobile ? 3 : 6,
+                    borderRadius: 4,
                     stack: 'Stack 0',
-                    barPercentage: 0.5,
+                    barPercentage: 0.6,
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: {
-                    position: 'top',
-                    align: 'end',
-                    labels: {
-                        // 移动端图例字号调整
-                        font: { size: isMobile ? 11 : 22, weight: 'bold' }
-                    }
-                },
+                legend: { position: 'top', align: 'end' },
                 tooltip: {
                     callbacks: {
                         label: (context) => {
@@ -146,33 +115,28 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                             });
                             return '总计: ' + total.toFixed(2) + ' 万';
                         }
-                    },
-                    footerFont: { size: isMobile ? 12 : 22, weight: 'bold' }
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     title: { 
-                        display: !isMobile, // 手机端隐藏Y轴标题以节省空间
+                        display: !isMobile, 
                         text: '万元/年',
-                        font: { size: 18, weight: 'bold' } 
+                        font: { size: 14, weight: 'bold' } 
                     },
                     stacked: true,
                     border: { display: false },
-                    ticks: { 
-                        padding: isMobile ? 5 : 10,
-                        font: { size: isMobile ? 10 : 14 }
-                    }
+                    ticks: { padding: 10 }
                 },
                 x: { 
                     stacked: true,
                     grid: { display: false },
                     ticks: { 
-                        font: { size: isMobile ? 11 : 18, weight: 'bold' },
-                        // 手机端如果标签太多，自动旋转
-                        maxRotation: isMobile ? 45 : 0,
-                        minRotation: isMobile ? 45 : 0
+                        font: { weight: 'bold' },
+                        maxRotation: 45,
+                        minRotation: 0
                     } 
                 }
             }
@@ -181,11 +145,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
     return charts.cost;
 }
 
-/**
- * 2. 创建 LCC 成本构成甜甜圈图
- */
 export function createLccChart(ctx, data) {
-    // 处理负数显示问题
     const plotData = data.map(v => Math.abs(v));
 
     charts.lcc = new Chart(ctx, {
@@ -194,14 +154,9 @@ export function createLccChart(ctx, data) {
             labels: ['初始投资', '全周期能源', '全周期运维', '残值回收'],
             datasets: [{
                 data: plotData,
-                backgroundColor: [
-                    '#ef4444', // Red-500
-                    '#3b82f6', // Blue-500
-                    '#f59e0b', // Amber-500
-                    '#10b981'  // Emerald-500
-                ],
+                backgroundColor: [ '#ef4444', '#3b82f6', '#f59e0b', '#10b981' ],
                 borderWidth: 0,
-                hoverOffset: isMobile ? 10 : 20
+                hoverOffset: 15
             }]
         },
         options: {
@@ -210,11 +165,8 @@ export function createLccChart(ctx, data) {
             cutout: '60%',
             plugins: {
                 legend: {
-                    position: isMobile ? 'bottom' : 'right', // 手机端图例放底部
-                    labels: { 
-                        padding: isMobile ? 15 : 25,
-                        font: { size: isMobile ? 12 : 22, weight: 'bold' }
-                    }
+                    position: 'right', 
+                    labels: { padding: 20 }
                 },
                 tooltip: {
                     callbacks: {
@@ -223,7 +175,6 @@ export function createLccChart(ctx, data) {
                             const total = context.chart._metasets[context.datasetIndex].total;
                             const percentage = ((val / total) * 100).toFixed(1) + '%';
                             const labelStr = context.label;
-                            
                             if (labelStr === '残值回收') {
                                 return ` ${labelStr}: -${val.toFixed(1)} 万 (${percentage})`;
                             }

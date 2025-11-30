@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>工业热泵效益分析器 V18.3 (Universal)</title>
+    <title>工业热泵效益分析器 V18.6 (Golden Ratio)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,43 +20,43 @@
     
     <div class="flex h-full w-full relative">
         
-        <aside id="input-sidebar" class="fixed inset-0 z-50 flex flex-col bg-white shadow-2xl transition-transform duration-300 transform translate-y-full md:translate-y-0 md:static md:w-[800px] md:min-w-[800px] md:border-r border-gray-200 md:shadow-none">
+        <aside id="input-sidebar" class="fixed inset-0 z-50 flex flex-col bg-white shadow-2xl transition-transform duration-300 transform translate-y-full md:translate-y-0 md:static md:w-[38.2%] md:min-w-[420px] md:border-r border-gray-200 md:shadow-none">
             
-            <header class="flex-none p-4 md:p-8 border-b border-gray-100 bg-white flex justify-between items-center">
+            <header class="flex-none p-4 md:p-6 border-b border-gray-100 bg-white flex justify-between items-center">
                 <div>
-                    <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">效益分析 Dashboard</h1>
-                    <p class="mt-1 md:mt-3 text-sm md:text-xl text-blue-600 font-bold">V18.3 | 工业热泵经济与环境效益分析器</p>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">效益分析</h1>
+                    <p class="mt-1 md:mt-2 text-sm md:text-lg text-blue-600 font-bold">V18.6 | 黄金分割版</p>
                 </div>
                 <button id="mobile-sidebar-close" class="md:hidden p-2 text-gray-500 hover:text-gray-800">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </header>
             
-            <div id="dashboard-inputs-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-8 bg-gray-50/50 custom-scrollbar overscroll-contain">
-                <div id="accordion-project" class="accordion-item shadow-sm bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl"></div>
-                <div id="accordion-scheme" class="accordion-item shadow-sm bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl"></div>
-                <div id="accordion-operating" class="accordion-item shadow-sm bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl"></div>
-                <div id="accordion-financial" class="accordion-item shadow-sm bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl"></div>
+            <div id="dashboard-inputs-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-50/50 custom-scrollbar overscroll-contain">
+                <div id="accordion-project" class="accordion-item shadow-sm bg-white border border-gray-200 rounded-xl"></div>
+                <div id="accordion-scheme" class="accordion-item shadow-sm bg-white border border-gray-200 rounded-xl"></div>
+                <div id="accordion-operating" class="accordion-item shadow-sm bg-white border border-gray-200 rounded-xl"></div>
+                <div id="accordion-financial" class="accordion-item shadow-sm bg-white border border-gray-200 rounded-xl"></div>
                 <div class="h-24 md:hidden"></div>
             </div>
 
-            <div class="flex-none p-4 md:p-8 bg-white border-t border-gray-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] pb-safe">
-                <div class="flex justify-between items-center mb-4 md:mb-6">
-                    <button id="btn-reset-params" type="button" class="text-lg md:text-xl text-gray-500 hover:text-red-600 transition-colors flex items-center font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            <div class="flex-none p-4 md:p-6 bg-white border-t border-gray-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] pb-safe">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="btn-reset-params" type="button" class="text-base md:text-lg text-gray-500 hover:text-red-600 transition-colors flex items-center font-bold">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         重置
                     </button>
-                    <label class="flex items-center cursor-pointer bg-gray-100 px-4 md:px-6 py-2 md:py-3 rounded-full hover:bg-gray-200 transition-colors border-2 border-transparent hover:border-gray-300">
-                         <input type="checkbox" id="enableScenarioComparison" class="h-6 w-6 md:h-8 md:w-8 rounded-lg border-gray-400 text-blue-600 focus:ring-blue-500 track-change">
-                         <span class="ml-3 md:ml-4 text-lg md:text-xl font-bold text-gray-700">启用对比</span>
+                    <label class="flex items-center cursor-pointer bg-gray-100 px-4 py-2 rounded-full hover:bg-gray-200 transition-colors border border-transparent hover:border-gray-300">
+                         <input type="checkbox" id="enableScenarioComparison" class="h-5 w-5 md:h-6 md:w-6 rounded border-gray-400 text-blue-600 focus:ring-blue-500 track-change">
+                         <span class="ml-3 text-base md:text-lg font-bold text-gray-700">启用对比</span>
                     </label>
                 </div>
                 
-                <button id="calculateBtn" class="w-full bg-blue-600 text-white font-bold py-4 md:py-6 rounded-xl md:rounded-2xl hover:bg-blue-700 active:bg-blue-800 transition-all shadow-blue-300 shadow-xl text-2xl md:text-3xl flex items-center justify-center tracking-wide">
-                    <svg class="w-8 h-8 md:w-10 md:h-10 mr-3 md:mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    运行计算分析
+                <button id="calculateBtn" class="w-full bg-blue-600 text-white font-bold py-3 md:py-4 rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all shadow-lg shadow-blue-200 text-xl md:text-2xl flex items-center justify-center tracking-wide">
+                    <svg class="w-6 h-6 md:w-8 md:h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    运行计算
                 </button>
-                <button id="saveScenarioBtn" class="w-full text-lg md:text-xl bg-gray-100 text-gray-600 font-bold py-3 md:py-5 mt-3 md:mt-5 rounded-xl md:rounded-2xl hover:bg-gray-200 transition-colors hidden border-2 border-gray-200" disabled>
+                <button id="saveScenarioBtn" class="w-full text-base md:text-lg bg-gray-50 text-gray-600 font-bold py-3 mt-3 rounded-xl hover:bg-gray-100 transition-colors hidden border border-gray-200" disabled>
                     + 暂存当前方案
                 </button>
             </div>
@@ -65,63 +65,63 @@
         <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 md:hidden w-11/12 max-w-sm">
             <button id="mobile-open-config" class="w-full bg-blue-600/90 backdrop-blur-sm text-white font-bold py-4 rounded-full shadow-2xl flex items-center justify-center text-xl border-2 border-white/20 animate-fadeInUp">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                配置参数 / 运行计算
+                配置参数
             </button>
         </div>
 
-        <main id="main-results-area" class="flex-1 h-full overflow-y-auto bg-gray-100 p-4 md:p-14 relative w-full scroll-smooth">
+        <main id="main-results-area" class="flex-1 h-full overflow-y-auto bg-gray-100 p-4 md:p-10 relative w-full scroll-smooth">
             
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-4">
-                <h2 class="text-3xl md:text-5xl font-black text-gray-800 tracking-tight">实时评估看板</h2>
-                <button id="export-report-btn" class="w-full md:w-auto bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 hover:text-blue-600 font-bold py-3 md:py-4 px-6 md:px-8 rounded-xl text-lg md:text-xl flex items-center justify-center shadow-md transition-all" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
+                <h2 class="text-3xl md:text-4xl font-black text-gray-800 tracking-tight">实时评估看板</h2>
+                <button id="export-report-btn" class="w-full md:w-auto bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-blue-600 font-bold py-3 px-6 rounded-lg text-lg flex items-center justify-center shadow-sm transition-all" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                     导出报告
                 </button>
             </header>
 
-            <div id="results-card-area" class="grid grid-cols-2 2xl:grid-cols-4 gap-4 md:gap-8 mb-6 md:mb-10">
-                <div class="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-md border-2 border-gray-100">
-                    <p class="text-xs md:text-lg font-bold text-gray-400 uppercase tracking-widest">年节省金额</p>
-                    <p id="card-annual-saving" class="text-2xl md:text-6xl font-black text-gray-800 mt-2 md:mt-4 tracking-tighter">--</p>
+            <div id="results-card-area" class="grid grid-cols-2 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <p class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest">年节省金额</p>
+                    <p id="card-annual-saving" class="text-2xl md:text-5xl font-black text-gray-800 mt-2 md:mt-3 tracking-tighter">--</p>
                 </div>
-                <div class="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-md border-2 border-gray-100">
-                    <p class="text-xs md:text-lg font-bold text-gray-400 uppercase tracking-widest">内部收益率 (IRR)</p>
-                    <p id="card-irr" class="text-2xl md:text-6xl font-black text-gray-800 mt-2 md:mt-4 tracking-tighter">--</p>
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <p class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest">内部收益率 (IRR)</p>
+                    <p id="card-irr" class="text-2xl md:text-5xl font-black text-gray-800 mt-2 md:mt-3 tracking-tighter">--</p>
                 </div>
-                <div class="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-md border-2 border-gray-100">
-                    <p class="text-xs md:text-lg font-bold text-gray-400 uppercase tracking-widest">动态回收期</p>
-                    <p id="card-pbp" class="text-2xl md:text-6xl font-black text-gray-800 mt-2 md:mt-4 tracking-tighter">--</p>
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <p class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest">动态回收期</p>
+                    <p id="card-pbp" class="text-2xl md:text-5xl font-black text-gray-800 mt-2 md:mt-3 tracking-tighter">--</p>
                 </div>
-                <div class="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-md border-2 border-gray-100">
-                    <p class="text-xs md:text-lg font-bold text-gray-400 uppercase tracking-widest">年碳减排</p>
-                    <p id="card-co2-reduction" class="text-2xl md:text-6xl font-black text-gray-800 mt-2 md:mt-4 tracking-tighter">--</p>
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <p class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest">年碳减排</p>
+                    <p id="card-co2-reduction" class="text-2xl md:text-5xl font-black text-gray-800 mt-2 md:mt-3 tracking-tighter">--</p>
                 </div>
             </div>
 
-            <div id="detailed-report-area" class="bg-white rounded-2xl md:rounded-3xl shadow-md border-2 border-gray-200 min-h-[500px] md:min-h-[800px] flex flex-col overflow-hidden mb-24 md:mb-0">
+            <div id="detailed-report-area" class="bg-white rounded-2xl shadow-sm border border-gray-200 min-h-[500px] md:min-h-[700px] flex flex-col overflow-hidden mb-24 md:mb-0">
                 <div id="report-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-300 p-8 text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 md:h-32 md:w-32 mb-4 md:mb-8 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-4a2 2 0 012-2h2a2 2 0 012 2v4M9 17h6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    <p class="text-xl md:text-3xl font-medium">请点击下方“配置参数”开始计算...</p>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 md:h-24 md:w-24 mb-4 md:mb-6 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-4a2 2 0 012-2h2a2 2 0 012 2v4M9 17h6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    <p class="text-lg md:text-2xl font-medium">请点击左侧“配置参数”...</p>
                 </div>
                 
                 <div id="report-content" class="hidden flex-1 flex flex-col h-full">
-                    <div class="border-b-2 border-gray-100 px-4 md:px-10 pt-4 md:pt-8 bg-white overflow-x-auto">
-                        <nav class="-mb-0.5 flex space-x-6 md:space-x-12 min-w-max">
-                            <a href="#" data-tab="charts" class="tab-link pb-4 md:pb-6 px-2 md:px-4 text-lg md:text-2xl font-bold text-blue-600 border-b-4 border-blue-600 transition-colors">图表分析</a>
-                            <a href="#" data-tab="data-table" class="tab-link pb-4 md:pb-6 px-2 md:px-4 text-lg md:text-2xl font-bold text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">详细数据</a>
-                            <a href="#" data-tab="conclusion" class="tab-link pb-4 md:pb-6 px-2 md:px-4 text-lg md:text-2xl font-bold text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">智能结论</a>
-                            <a href="#" data-tab="scenarios" class="tab-link pb-4 md:pb-6 px-2 md:px-4 text-lg md:text-2xl font-bold text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">方案对比</a>
+                    <div class="border-b border-gray-100 px-4 md:px-8 pt-4 md:pt-6 bg-white overflow-x-auto">
+                        <nav class="-mb-px flex space-x-6 md:space-x-10 min-w-max">
+                            <a href="#" data-tab="charts" class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-bold text-blue-600 border-b-4 border-blue-600 transition-colors">图表分析</a>
+                            <a href="#" data-tab="data-table" class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-bold text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">详细数据</a>
+                            <a href="#" data-tab="conclusion" class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-bold text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">智能结论</a>
+                            <a href="#" data-tab="scenarios" class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-bold text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">方案对比</a>
                         </nav>
                     </div>
-                    <div class="p-4 md:p-10 bg-gray-50/50 flex-1 overflow-y-auto">
+                    <div class="p-4 md:p-8 bg-gray-50/50 flex-1 overflow-y-auto">
                         <div id="tab-charts" class="tab-content h-full">
-                            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
-                                <div class="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border-2 border-gray-100 shadow-sm flex flex-col h-[400px] md:h-auto">
-                                    <h4 class="text-lg md:text-xl font-bold text-gray-600 mb-4 md:mb-8">年度成本对比</h4>
+                            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8 h-auto md:h-[600px]">
+                                <div class="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-[400px] md:h-auto">
+                                    <h4 class="text-lg md:text-lg font-bold text-gray-600 mb-4">年度成本对比</h4>
                                     <div class="flex-1 relative w-full h-full overflow-hidden"><canvas id="costComparisonChart"></canvas></div>
                                 </div>
-                                <div class="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border-2 border-gray-100 shadow-sm flex flex-col h-[400px] md:h-auto">
-                                    <h4 class="text-lg md:text-xl font-bold text-gray-600 mb-4 md:mb-8">全生命周期成本 (LCC) 构成</h4>
+                                <div class="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-[400px] md:h-auto">
+                                    <h4 class="text-lg md:text-lg font-bold text-gray-600 mb-4">LCC 成本构成</h4>
                                     <div class="flex-1 relative w-full h-full overflow-hidden"><canvas id="lccBreakdownChart"></canvas></div>
                                 </div>
                             </div>
@@ -133,22 +133,20 @@
                                  <table class="min-w-full divide-y divide-gray-200" id="scenario-comparison-table">
                                      <thead class="bg-gray-100">
                                          <tr>
-                                             <th class="px-4 md:px-8 py-3 md:py-5 text-left text-sm md:text-lg font-extrabold text-gray-600 uppercase tracking-wider">方案名称</th>
-                                             <th class="px-4 md:px-8 py-3 md:py-5 text-left text-sm md:text-lg font-extrabold text-gray-600 uppercase tracking-wider">投资(万)</th>
-                                             <th class="px-4 md:px-8 py-3 md:py-5 text-left text-sm md:text-lg font-extrabold text-gray-600 uppercase tracking-wider">LCC(万)</th>
-                                             <th class="px-4 md:px-8 py-3 md:py-5 text-left text-sm md:text-lg font-extrabold text-gray-600 uppercase tracking-wider">IRR</th>
-                                             <th class="px-4 md:px-8 py-3 md:py-5"><span class="sr-only">操作</span></th>
+                                             <th class="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-extrabold text-gray-600 uppercase">方案名称</th>
+                                             <th class="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-extrabold text-gray-600 uppercase">投资(万)</th>
+                                             <th class="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-extrabold text-gray-600 uppercase">LCC(万)</th>
+                                             <th class="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-extrabold text-gray-600 uppercase">IRR</th>
+                                             <th class="px-4 md:px-6 py-3 md:py-4"><span class="sr-only">操作</span></th>
                                          </tr>
                                      </thead>
-                                     <tbody class="bg-white divide-y-2 divide-gray-100 text-lg md:text-xl font-medium"></tbody>
+                                     <tbody class="bg-white divide-y divide-gray-100 text-lg md:text-lg font-medium"></tbody>
                                  </table>
                              </div>
-                             <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 md:py-16 text-lg md:text-2xl font-medium">
-                                 <p>暂无暂存方案。</p>
-                             </div>
+                             <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 md:py-16 text-lg md:text-xl font-medium">暂无暂存方案</div>
                              <div class="mt-8 flex justify-end gap-6">
-                                 <button id="undoClearBtn" class="hidden text-lg md:text-xl font-bold text-blue-600 hover:text-blue-800">撤销清空</button>
-                                 <button id="clearScenariosBtn" class="hidden text-lg md:text-xl font-bold text-red-600 hover:text-red-800">清空所有</button>
+                                 <button id="undoClearBtn" class="hidden text-base md:text-lg font-bold text-blue-600 hover:text-blue-800">撤销清空</button>
+                                 <button id="clearScenariosBtn" class="hidden text-base md:text-lg font-bold text-red-600 hover:text-red-800">清空所有</button>
                              </div>
                         </div>
                     </div>
@@ -158,31 +156,31 @@
     </div>
     
     <div id="confirm-modal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[60] overflow-y-auto h-full w-full flex items-center justify-center">
-        <div class="relative p-6 md:p-8 border-2 border-gray-200 w-11/12 md:w-[500px] shadow-2xl rounded-2xl md:rounded-3xl bg-white">
+        <div class="relative p-6 md:p-8 border border-gray-200 w-11/12 md:w-[450px] shadow-2xl rounded-2xl bg-white">
             <div class="text-center">
-                <h3 class="text-2xl md:text-3xl leading-tight font-extrabold text-gray-900" id="confirm-modal-title"></h3>
-                <div class="mt-4 px-2 py-4"><p class="text-lg md:text-xl text-gray-500" id="confirm-modal-message"></p></div>
-                <div class="items-center px-2 py-3 flex gap-4">
-                    <button id="confirm-modal-cancel-btn" class="flex-1 py-3 md:py-4 bg-white text-gray-700 text-lg md:text-xl font-bold rounded-xl border-2 border-gray-300 hover:bg-gray-50">取消</button>
-                    <button id="confirm-modal-ok-btn" class="flex-1 py-3 md:py-4 bg-blue-600 text-white text-lg md:text-xl font-bold rounded-xl hover:bg-blue-700 shadow-lg">确认</button>
+                <h3 class="text-xl md:text-2xl font-extrabold text-gray-900" id="confirm-modal-title"></h3>
+                <div class="mt-4 px-2 py-4"><p class="text-base md:text-lg text-gray-500" id="confirm-modal-message"></p></div>
+                <div class="items-center px-2 py-3 flex gap-3">
+                    <button id="confirm-modal-cancel-btn" class="flex-1 py-3 bg-white text-gray-700 text-base md:text-lg font-bold rounded-xl border border-gray-300 hover:bg-gray-50">取消</button>
+                    <button id="confirm-modal-ok-btn" class="flex-1 py-3 bg-blue-600 text-white text-base md:text-lg font-bold rounded-xl hover:bg-blue-700 shadow-lg">确认</button>
                 </div>
             </div>
         </div>
     </div>
     
     <div id="eff-calc-modal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[60] overflow-y-auto h-full w-full flex items-center justify-center">
-         <div class="relative p-6 md:p-8 border-2 border-gray-200 w-11/12 md:w-[800px] shadow-2xl rounded-2xl md:rounded-3xl bg-white max-h-[90vh] overflow-y-auto">
-             <div class="flex justify-between items-center mb-4 md:mb-6 border-b-2 border-gray-100 pb-4">
-                 <h3 class="text-2xl md:text-3xl font-extrabold text-gray-800">🔥 锅炉效率反推助手</h3>
-                 <button id="eff-calc-close-btn" class="text-gray-400 hover:text-gray-600 text-3xl md:text-4xl font-bold">&times;</button>
+         <div class="relative p-6 md:p-8 border border-gray-200 w-11/12 md:w-[700px] shadow-2xl rounded-2xl bg-white max-h-[90vh] overflow-y-auto">
+             <div class="flex justify-between items-center mb-4 md:mb-6 border-b border-gray-100 pb-4">
+                 <h3 class="text-xl md:text-2xl font-extrabold text-gray-800">🔥 锅炉效率反推助手</h3>
+                 <button id="eff-calc-close-btn" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">&times;</button>
              </div>
              
-             <div class="space-y-6 md:space-y-8">
-                 <div class="bg-gray-50 p-4 md:p-8 rounded-2xl border-2 border-gray-200">
-                     <div class="grid grid-cols-2 gap-4 md:gap-8 mb-4 md:mb-6">
+             <div class="space-y-6">
+                 <div class="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200">
+                     <div class="grid grid-cols-2 gap-4 mb-4">
                          <div class="col-span-2">
-                             <label class="block text-xl md:text-2xl font-bold text-gray-500 mb-2 md:mb-3">燃料类型</label>
-                             <select id="ec-fuel-type" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl bg-gray-100 text-gray-600 text-xl md:text-2xl appearance-none" disabled>
+                             <label class="block text-sm md:text-base font-bold text-gray-500 mb-2">燃料类型</label>
+                             <select id="ec-fuel-type" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-lg appearance-none" disabled>
                                  <option value="gas">天然气</option>
                                  <option value="coal">燃煤</option>
                                  <option value="fuel">燃油</option>
@@ -190,49 +188,49 @@
                              </select>
                          </div>
                          <div>
-                             <label class="block text-xl md:text-2xl font-bold text-gray-500 mb-2 md:mb-3">燃料消耗量</label>
-                             <input type="number" id="ec-fuel-amount" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-2xl md:text-3xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
+                             <label class="block text-sm md:text-base font-bold text-gray-500 mb-2">燃料消耗量</label>
+                             <input type="number" id="ec-fuel-amount" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl md:text-2xl focus:ring-4 focus:ring-blue-500" placeholder="0">
                          </div>
-                         <div class="flex items-end pb-2 md:pb-4">
-                             <span id="ec-fuel-unit" class="text-xl md:text-2xl font-bold text-gray-600">m³</span>
+                         <div class="flex items-end pb-3">
+                             <span id="ec-fuel-unit" class="text-lg font-bold text-gray-600">m³</span>
                          </div>
                      </div>
                  </div>
 
-                 <div class="bg-blue-50 p-4 md:p-8 rounded-2xl border-2 border-blue-100">
-                     <div class="flex gap-6 md:gap-10 mb-4 md:mb-6">
+                 <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100">
+                     <div class="flex gap-6 mb-4">
                          <label class="inline-flex items-center cursor-pointer">
-                             <input type="radio" name="ec-output-type" value="water" class="w-6 h-6 md:w-8 md:h-8 text-blue-600" checked>
-                             <span class="ml-2 md:ml-4 text-xl md:text-2xl font-bold text-gray-700">热水</span>
+                             <input type="radio" name="ec-output-type" value="water" class="w-5 h-5 text-blue-600" checked>
+                             <span class="ml-2 text-lg font-bold text-gray-700">热水</span>
                          </label>
                          <label class="inline-flex items-center cursor-pointer">
-                             <input type="radio" name="ec-output-type" value="steam" class="w-6 h-6 md:w-8 md:h-8 text-blue-600">
-                             <span class="ml-2 md:ml-4 text-xl md:text-2xl font-bold text-gray-700">蒸汽</span>
+                             <input type="radio" name="ec-output-type" value="steam" class="w-5 h-5 text-blue-600">
+                             <span class="ml-2 text-lg font-bold text-gray-700">蒸汽</span>
                          </label>
                      </div>
 
-                     <div id="ec-water-params" class="grid grid-cols-2 gap-4 md:gap-8">
-                         <div><label class="block text-lg md:text-xl font-bold text-gray-500 mb-2">产水量 (吨)</label><input type="number" id="ec-water-mass" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-xl md:text-2xl"></div>
+                     <div id="ec-water-params" class="grid grid-cols-2 gap-4">
+                         <div><label class="block text-sm font-bold text-gray-500 mb-1">产水量 (吨)</label><input type="number" id="ec-water-mass" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl"></div>
                          <div></div>
-                         <div><label class="block text-lg md:text-xl font-bold text-gray-500 mb-2">进水温度 (℃)</label><input type="number" id="ec-water-in-temp" value="15" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-xl md:text-2xl"></div>
-                         <div><label class="block text-lg md:text-xl font-bold text-gray-500 mb-2">出水温度 (℃)</label><input type="number" id="ec-water-out-temp" value="60" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-xl md:text-2xl"></div>
+                         <div><label class="block text-sm font-bold text-gray-500 mb-1">进水温度 (℃)</label><input type="number" id="ec-water-in-temp" value="15" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl"></div>
+                         <div><label class="block text-sm font-bold text-gray-500 mb-1">出水温度 (℃)</label><input type="number" id="ec-water-out-temp" value="60" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl"></div>
                      </div>
 
-                     <div id="ec-steam-params" class="hidden grid grid-cols-2 gap-4 md:gap-8">
-                         <div><label class="block text-lg md:text-xl font-bold text-gray-500 mb-2">产汽量 (吨)</label><input type="number" id="ec-steam-mass" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-xl md:text-2xl"></div>
-                         <div><label class="block text-lg md:text-xl font-bold text-gray-500 mb-2">蒸汽压力 (MPa)</label><input type="number" id="ec-steam-pressure" value="0.8" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-xl md:text-2xl"></div>
-                         <div><label class="block text-lg md:text-xl font-bold text-gray-500 mb-2">补水温度 (℃)</label><input type="number" id="ec-steam-feed-temp" value="20" class="w-full px-4 md:px-6 py-3 md:py-4 border-2 border-gray-300 rounded-xl text-xl md:text-2xl"></div>
+                     <div id="ec-steam-params" class="hidden grid grid-cols-2 gap-4">
+                         <div><label class="block text-sm font-bold text-gray-500 mb-1">产汽量 (吨)</label><input type="number" id="ec-steam-mass" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl"></div>
+                         <div><label class="block text-sm font-bold text-gray-500 mb-1">蒸汽压力 (MPa)</label><input type="number" id="ec-steam-pressure" value="0.8" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl"></div>
+                         <div><label class="block text-sm font-bold text-gray-500 mb-1">补水温度 (℃)</label><input type="number" id="ec-steam-feed-temp" value="20" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-xl"></div>
                      </div>
                  </div>
 
-                 <div class="text-center py-2 md:py-4">
-                     <p class="text-lg md:text-xl text-gray-500 mb-2">计算效率结果</p>
-                     <p class="text-4xl md:text-6xl font-black text-blue-600 tracking-tight" id="ec-result-display">-- %</p>
+                 <div class="text-center py-2">
+                     <p class="text-base text-gray-500 mb-1">计算效率结果</p>
+                     <p class="text-4xl md:text-5xl font-black text-blue-600 tracking-tight" id="ec-result-display">-- %</p>
                  </div>
 
-                 <div class="flex gap-4 md:gap-6 pt-2 md:pt-4">
-                     <button id="ec-calc-btn" class="flex-1 bg-gray-200 text-gray-800 font-bold py-3 md:py-5 rounded-xl md:rounded-2xl text-xl md:text-2xl hover:bg-gray-300 transition-colors">开始计算</button>
-                     <button id="ec-apply-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 md:py-5 rounded-xl md:rounded-2xl text-xl md:text-2xl hover:bg-blue-700 transition-colors shadow-xl disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用结果</button>
+                 <div class="flex gap-4 pt-2">
+                     <button id="ec-calc-btn" class="flex-1 bg-gray-200 text-gray-800 font-bold py-3 rounded-xl text-lg hover:bg-gray-300 transition-colors">开始计算</button>
+                     <button id="ec-apply-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl text-lg hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50" disabled>应用结果</button>
                  </div>
              </div>
          </div>
