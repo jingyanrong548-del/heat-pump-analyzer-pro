@@ -1,10 +1,10 @@
 // src/js/main.js
-// V18.5: Unit Normalization Engine & Green Power Logic
+// V19.16: Flexible Hybrid Mode (Any Energy Source)
 
 import '../css/style.css'; 
 import { initializeUI, readAllInputs, renderDashboard } from './ui.js';
 import { showGlobalNotification } from './ui-dashboard.js';
-import { ENERGY_CONVERTERS } from './config.js'; // 导入换算系数
+import { ENERGY_CONVERTERS } from './config.js'; 
 
 const KWH_PER_TON_STEAM = 697.8;
 
@@ -22,9 +22,12 @@ function calculateLCC(inputs) {
         heatingLoad, operatingHours, annualHeatingDemandKWh,
         lccYears, discountRate, energyInflationRate, opexInflationRate,
         hpHostCapex, hpStorageCapex, hpSalvageRate, hpCop, hpOpexCost,
-        priceTiers, gridFactor
+        priceTiers, gridFactor,
+        // 混合动力参数
+        isHybridMode, hybridLoadShare, hybridAuxHeaterCapex, hybridAuxHeaterType, hybridAuxHeaterOpex
     } = inputs;
 
+    // 1. 计算加权平均电价
     let avgElecPrice = 0;
     if (priceTiers && priceTiers.length > 0) {
         let totalWeight = 0;
@@ -38,43 +41,137 @@ function calculateLCC(inputs) {
         avgElecPrice = 0.7; 
     }
 
-    const hpElecConsumption = annualHeatingDemandKWh / hpCop;
-    const hpAnnualEnergyCost = hpElecConsumption * avgElecPrice;
-    
-    // gridFactor 已经由 ui.js 根据绿电开关处理过（如果是绿电则为0）
-    const hpCo2 = (hpElecConsumption * gridFactor) / 1000; 
-    
-    const annualTotalCost = hpAnnualEnergyCost + hpOpexCost;
+    // 2. 负荷分配
+    // 热泵承担份额 (0-1)
+    const shareRate = isHybridMode ? (hybridLoadShare / 100) : 1.0;
+    const hpDemandKWh = annualHeatingDemandKWh * shareRate;
+    const auxDemandKWh = annualHeatingDemandKWh * (1 - shareRate);
 
-    const totalCapex = hpHostCapex + hpStorageCapex;
-    let totalNPV = totalCapex;
+    // 3. 热泵部分计算
+    const hpElecConsumption = hpDemandKWh / hpCop;
+    const hpEnergyCost = hpElecConsumption * avgElecPrice;
+    const hpCo2 = (hpElecConsumption * gridFactor) / 1000; // tCO2
+
+    // 4. 辅热部分计算 (Flexible Aux Heater)
+    let auxEnergyCost = 0;
+    let auxCo2 = 0;
+    
+    if (isHybridMode && auxDemandKWh > 0) {
+        let auxPrice = 0;      // 单价
+        let auxEff = 1;        // 效率
+        let auxCalorific = 0;  // 热值 (MJ/unit)
+        let auxFactor = 0;     // 排放因子 (kg/unit)
+        let unitType = 'ton';  // 计价单位类型 (ton, m3, kwh)
+
+        // 根据选择的辅热类型，复用 input 中的参数
+        switch (hybridAuxHeaterType) {
+            case 'gas':
+                auxPrice = inputs.gasPrice;
+                auxEff = inputs.gasBoilerEfficiency;
+                auxCalorific = normalizeToMJ(inputs.gasCalorificObj);
+                auxFactor = inputs.gasFactor;
+                unitType = 'm3';
+                break;
+            case 'coal':
+                auxPrice = inputs.coalPrice;
+                auxEff = inputs.coalBoilerEfficiency;
+                auxCalorific = normalizeToMJ(inputs.coalCalorificObj);
+                auxFactor = inputs.coalFactor;
+                unitType = 'ton';
+                break;
+            case 'fuel':
+                auxPrice = inputs.fuelPrice;
+                auxEff = inputs.fuelBoilerEfficiency;
+                auxCalorific = normalizeToMJ(inputs.fuelCalorificObj);
+                auxFactor = inputs.fuelFactor;
+                unitType = 'ton';
+                break;
+            case 'biomass':
+                auxPrice = inputs.biomassPrice;
+                auxEff = inputs.biomassBoilerEfficiency;
+                auxCalorific = normalizeToMJ(inputs.biomassCalorificObj);
+                auxFactor = inputs.biomassFactor;
+                unitType = 'ton';
+                break;
+            case 'steam':
+                auxPrice = inputs.steamPrice;
+                auxEff = inputs.steamEfficiency; // 通常指换热效率
+                auxCalorific = normalizeToMJ(inputs.steamCalorificObj);
+                auxFactor = inputs.steamFactor;
+                unitType = 'ton';
+                break;
+            case 'electric':
+            default:
+                auxPrice = avgElecPrice; // 用同样的电价
+                auxEff = inputs.electricBoilerEfficiency;
+                auxCalorific = 3.6; // 1 kWh = 3.6 MJ
+                auxFactor = gridFactor;
+                unitType = 'kwh';
+                break;
+        }
+
+        // 计算辅热耗量与成本
+        if (auxEff > 0 && auxCalorific > 0) {
+            const auxDemandMJ = auxDemandKWh * 3.6;
+            const auxConsumption = auxDemandMJ / (auxCalorific * auxEff); // 消耗量 (kg, m3, or kWh)
+            
+            // 计算费用
+            if (unitType === 'ton') {
+                auxEnergyCost = (auxConsumption / 1000) * auxPrice;
+            } else {
+                // m3 或 kWh 直接乘单价
+                auxEnergyCost = auxConsumption * auxPrice;
+            }
+
+            // 计算排放
+            auxCo2 = (auxConsumption * auxFactor) / 1000; // tCO2
+        }
+    }
+
+    // 5. 汇总成本
+    const totalInitialInvestment = hpHostCapex + hpStorageCapex + (isHybridMode ? hybridAuxHeaterCapex : 0);
+    const totalAnnualEnergyCost = hpEnergyCost + auxEnergyCost;
+    const totalAnnualOpex = hpOpexCost + (isHybridMode ? hybridAuxHeaterOpex : 0);
+    const totalAnnualCost = totalAnnualEnergyCost + totalAnnualOpex;
+    const totalCo2 = hpCo2 + auxCo2;
+
+    // 6. LCC 现金流计算
+    let totalNPV = totalInitialInvestment;
     let energyNPV = 0;
     let opexNPV = 0;
     
     for (let y = 1; y <= lccYears; y++) {
-        const yearEnergyCost = hpAnnualEnergyCost * Math.pow(1 + energyInflationRate, y - 1);
-        const yearOpexCost = hpOpexCost * Math.pow(1 + opexInflationRate, y - 1);
+        const yearEnergyCost = totalAnnualEnergyCost * Math.pow(1 + energyInflationRate, y - 1);
+        const yearOpexCost = totalAnnualOpex * Math.pow(1 + opexInflationRate, y - 1);
         const discountFactor = 1 / Math.pow(1 + discountRate, y);
         energyNPV += yearEnergyCost * discountFactor;
         opexNPV += yearOpexCost * discountFactor;
     }
     
-    const salvageValue = totalCapex * hpSalvageRate;
+    const salvageValue = totalInitialInvestment * hpSalvageRate;
     const salvageNPV = salvageValue / Math.pow(1 + discountRate, lccYears);
     totalNPV = totalNPV + energyNPV + opexNPV - salvageNPV;
 
+    // 7. 核心指标
     const equivalentSteamTons = annualHeatingDemandKWh / KWH_PER_TON_STEAM;
-    const unitSteamCost = equivalentSteamTons > 0 ? (annualTotalCost / equivalentSteamTons) : 0;
+    const unitSteamCost = equivalentSteamTons > 0 ? (totalAnnualCost / equivalentSteamTons) : 0;
 
     return {
         avgElecPrice, 
-        initialInvestment: totalCapex,
-        annualEnergyCost: hpAnnualEnergyCost,
-        annualOpex: hpOpexCost,
-        annualTotalCost: annualTotalCost,
-        co2: hpCo2,
+        initialInvestment: totalInitialInvestment,
+        annualEnergyCost: totalAnnualEnergyCost,
+        annualOpex: totalAnnualOpex,
+        annualTotalCost: totalAnnualCost,
+        co2: totalCo2,
         unitSteamCost: unitSteamCost, 
-        lcc: { total: totalNPV, capex: totalCapex, energy: energyNPV, opex: opexNPV, residual: -salvageNPV }
+        // 细分数据供图表使用
+        breakdown: {
+            hpEnergy: hpEnergyCost,
+            auxEnergy: auxEnergyCost,
+            hpOpex: hpOpexCost,
+            auxOpex: isHybridMode ? hybridAuxHeaterOpex : 0
+        },
+        lcc: { total: totalNPV, capex: totalInitialInvestment, energy: energyNPV, opex: opexNPV, residual: -salvageNPV }
     };
 }
 
@@ -82,40 +179,23 @@ function calculateComparison(inputs, hpResult) {
     const comparisons = [];
     const equivalentSteamTons = inputs.annualHeatingDemandKWh / KWH_PER_TON_STEAM;
 
-    // 通用计算函数：支持单位归一化
-    // calorificInput: 可以是单纯数值(旧逻辑兼容)或 {value, unit} 对象
     const calcOne = (name, capex, eff, price, calorificInput, opex, factor, salvageRate, unitType) => {
-        
-        // 1. 热值归一化 (全部转为 MJ)
         let calorificMJ = 0;
         if (typeof calorificInput === 'object') {
             calorificMJ = normalizeToMJ(calorificInput);
         } else {
-            calorificMJ = calorificInput; // 兼容电(3.6)等直接传值的
+            calorificMJ = calorificInput;
         }
 
         if (eff <= 0 || calorificMJ <= 0) return null;
         
-        // 2. 能耗计算 (需求 MJ / (热值 MJ * 效率))
         const demandMJ = inputs.annualHeatingDemandKWh * 3.6; 
         let consumption = demandMJ / (calorificMJ * eff); 
         
-        // 3. 成本计算
-        // 注意：config.js 中定义的 Gas 价格是 元/m³，固体是 元/吨
-        // consumption 这里的单位取决于 calorific 的分母
-        // 如果 calorific 是 MJ/kg，consumption 就是 kg
-        // 如果 calorific 是 MJ/m³，consumption 就是 m³
-        
         let annualEnergyCost = 0;
         if (unitType === 'ton') {
-            // 固体/液体：price 是 元/吨，consumption 是 kg
-            // cost = (kg / 1000) * (元/吨)
             annualEnergyCost = (consumption / 1000) * price;
-        } else if (unitType === 'm3') {
-            // 气体：price 是 元/m³，consumption 是 m³
-            annualEnergyCost = consumption * price;
         } else {
-            // 电：price 是 元/kWh，consumption 是 kWh (如果传入的是电热值3.6MJ)
             annualEnergyCost = consumption * price;
         }
 
@@ -141,6 +221,7 @@ function calculateComparison(inputs, hpResult) {
 
         for (let y = 1; y <= inputs.lccYears; y++) {
             const costBoiler = annualEnergyCost * Math.pow(1 + inputs.energyInflationRate, y-1) + opex * Math.pow(1 + inputs.opexInflationRate, y-1);
+            // 注意：这里 hpResult.annualEnergyCost 已经是混合动力后的总能源成本
             const costHP = hpResult.annualEnergyCost * Math.pow(1 + inputs.energyInflationRate, y-1) + hpResult.annualOpex * Math.pow(1 + inputs.opexInflationRate, y-1);
             const saving = costBoiler - costHP;
             
@@ -180,13 +261,12 @@ function calculateComparison(inputs, hpResult) {
         };
     };
 
-    // 注意：传入 calorificObj 对象
     if (inputs.compare.gas) comparisons.push(calcOne('天然气锅炉', inputs.gasBoilerCapex, inputs.gasBoilerEfficiency, inputs.gasPrice, inputs.gasCalorificObj, inputs.gasOpexCost, inputs.gasFactor, inputs.gasSalvageRate, 'm3'));
     if (inputs.compare.coal) comparisons.push(calcOne('燃煤锅炉', inputs.coalBoilerCapex, inputs.coalBoilerEfficiency, inputs.coalPrice, inputs.coalCalorificObj, inputs.coalOpexCost, inputs.coalFactor, inputs.coalSalvageRate, 'ton'));
     if (inputs.compare.fuel) comparisons.push(calcOne('燃油锅炉', inputs.fuelBoilerCapex, inputs.fuelBoilerEfficiency, inputs.fuelPrice, inputs.fuelCalorificObj, inputs.fuelOpexCost, inputs.fuelFactor, inputs.fuelSalvageRate, 'ton'));
     if (inputs.compare.biomass) comparisons.push(calcOne('生物质锅炉', inputs.biomassBoilerCapex, inputs.biomassBoilerEfficiency, inputs.biomassPrice, inputs.biomassCalorificObj, inputs.biomassOpexCost, inputs.biomassFactor, inputs.biomassSalvageRate, 'ton'));
     if (inputs.compare.electric) comparisons.push(calcOne('电锅炉', inputs.electricBoilerCapex, inputs.electricBoilerEfficiency, hpResult.avgElecPrice, 3.6, inputs.electricOpexCost, inputs.gridFactor, inputs.electricSalvageRate, 'kwh'));
-    if (inputs.compare.steam) comparisons.push(calcOne('管网蒸汽', inputs.steamCapex, inputs.steamEfficiency, inputs.steamPrice, inputs.steamCalorificObj, inputs.steamOpexCost, inputs.steamFactor, inputs.steamSalvageRate, 'ton')); // 蒸汽也是按吨计价
+    if (inputs.compare.steam) comparisons.push(calcOne('管网蒸汽', inputs.steamCapex, inputs.steamEfficiency, inputs.steamPrice, inputs.steamCalorificObj, inputs.steamOpexCost, inputs.steamFactor, inputs.steamSalvageRate, 'ton'));
 
     return comparisons.filter(c => c !== null);
 }
@@ -211,12 +291,12 @@ function handleCalculate() {
     if (!inputs) return;
     const hpResult = calculateLCC(inputs);
     const comparisons = calculateComparison(inputs, hpResult);
-    const results = { inputs, hp: hpResult, comparisons, isHybridMode: false };
+    const results = { inputs, hp: hpResult, comparisons, isHybridMode: inputs.isHybridMode };
     renderDashboard(results);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Phoenix Plan V18.5 Engine (Corrected Units) Initializing...');
+    console.log('Phoenix Plan V19.16 (Flexible Hybrid) Initializing...');
     initializeUI(handleCalculate);
     setTimeout(() => handleCalculate(), 500);
 });
