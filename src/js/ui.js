@@ -1,19 +1,28 @@
 // src/js/ui.js
-// V19.16 Step 2: UI Unlock - Flexible Hybrid Source & BOT Mode
+// V19.20 FIXED: Complete File with Full Logic Restoration
 
-import { ENERGY_DEFAULTS, EFF_CALC_DEFAULTS } from './config.js';
+import { ENERGY_DEFAULTS, EFF_CALC_DEFAULTS } from './config.js'; 
 import { validateInput } from './ui-validator.js';
 import { calculateBoilerEfficiency, fWan, fYuan, fInt, fNum, fTon, fCop, fPercent, fYears } from './utils.js';
 import * as Dashboard from './ui-dashboard.js';
 import { createCostChart, createLccChart, destroyCharts } from './ui-chart.js';
 
+// --- 全局状态 ---
 let latestResults = null;
+let savedScenarios = []; 
+let deletedScenariosBackup = [];
+
 const defAttr = (val) => `value="${val}" data-default="${val}"`;
 
-// --- 内置单位换算系数 ---
-const LOCAL_CONVERTERS = { 'MJ': 1, 'kJ': 0.001, 'kcal': 0.004186, 'kWh': 3.6 };
+// --- 内置单位换算系数 (基准单位：MJ) ---
+const LOCAL_CONVERTERS = {
+    'MJ': 1,
+    'kJ': 0.001,
+    'kcal': 0.004186,
+    'kWh': 3.6
+};
 
-// --- 样式常量 ---
+// --- 样式常量 (响应式适配) ---
 const INPUT_STYLE = "w-full px-3 md:px-4 py-2 bg-white border border-gray-300 rounded-lg text-base md:text-lg font-bold text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all outline-none placeholder-gray-400 h-10 md:h-12 shadow-sm";
 const LABEL_STYLE = "block text-sm font-bold text-gray-600 mb-1 md:mb-2 tracking-wide";
 const GROUP_STYLE = "bg-white p-1 mb-4 md:mb-6";
@@ -173,11 +182,11 @@ function generateSchemeInputsHTML() {
              </label>
              <div class="space-y-2 md:space-y-3">
                 ${[
-            { k: 'gas', n: '天然气' }, { k: 'coal', n: '燃煤' }, { k: 'electric', n: '电锅炉' },
-            { k: 'steam', n: '蒸汽' }, { k: 'fuel', n: '燃油' }, { k: 'biomass', n: '生物质' }
-        ].map(item => {
-            const defCapex = ENERGY_DEFAULTS[item.k].capex;
-            return `
+                    {k:'gas', n:'天然气'}, {k:'coal', n:'燃煤'}, {k:'electric', n:'电锅炉'}, 
+                    {k:'steam', n:'蒸汽'}, {k:'fuel', n:'燃油'}, {k:'biomass', n:'生物质'}
+                ].map(item => {
+                    const defCapex = ENERGY_DEFAULTS[item.k].capex;
+                    return `
                     <div class="flex items-center justify-between group related-to-${item.k} transition-all duration-200 p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200">
                         <div class="flex items-center">
                             <input type="checkbox" id="compare_${item.k}" data-target="${item.k}" class="comparison-toggle w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" checked>
@@ -192,7 +201,7 @@ function generateSchemeInputsHTML() {
                         </div>
                     </div>
                     `;
-        }).join('')}
+                }).join('')}
              </div>
         </div>
     `;
@@ -232,18 +241,17 @@ function generateOperatingInputsHTML() {
              </div>
         </div>
 
-<div class="pt-4 md:pt-6 border-t border-dashed border-gray-200">
+        <div class="pt-4 md:pt-6 border-t border-dashed border-gray-200">
             <label class="${LABEL_STYLE} mb-2 md:mb-4">锅炉效率 (%)</label>
             <div class="space-y-2 md:space-y-3">
                 ${[
-            // 修改：统一使用全称术语
-            { id: 'gas', label: '天然气', val: ENERGY_DEFAULTS.gas.boilerEff, hasBtn: true },
-            { id: 'coal', label: '燃煤', val: ENERGY_DEFAULTS.coal.boilerEff, hasBtn: true },
-            { id: 'electric', label: '电锅炉', val: ENERGY_DEFAULTS.electric.boilerEff, hasBtn: false },
-            { id: 'steam', label: '管道蒸汽', val: ENERGY_DEFAULTS.steam.boilerEff, hasBtn: false },
-            { id: 'fuel', label: '燃油', val: ENERGY_DEFAULTS.fuel.boilerEff, hasBtn: true },
-            { id: 'biomass', label: '生物质', val: ENERGY_DEFAULTS.biomass.boilerEff, hasBtn: true }
-        ].map(item => `
+                    {id:'gas', label:'天然气', val:ENERGY_DEFAULTS.gas.boilerEff, hasBtn:true}, 
+                    {id:'coal', label:'燃煤', val:ENERGY_DEFAULTS.coal.boilerEff, hasBtn:true}, 
+                    {id:'electric', label:'电锅炉', val:ENERGY_DEFAULTS.electric.boilerEff, hasBtn:false}, 
+                    {id:'steam', label:'管道蒸汽', val:ENERGY_DEFAULTS.steam.boilerEff, hasBtn:false}, 
+                    {id:'fuel', label:'燃油', val:ENERGY_DEFAULTS.fuel.boilerEff, hasBtn:true}, 
+                    {id:'biomass', label:'生物质', val:ENERGY_DEFAULTS.biomass.boilerEff, hasBtn:true}
+                ].map(item => `
                     <div class="flex items-center gap-2 related-to-${item.id}">
                         <span class="text-sm md:text-base font-bold text-gray-600 w-16 md:w-24 shrink-0 text-right pr-2">${item.label}</span>
                         <div class="flex-1 flex items-center gap-2 min-w-0">
@@ -267,8 +275,8 @@ function generateOperatingInputsHTML() {
                         <div class="flex items-center"><span class="text-[10px] md:text-xs mr-2 font-bold">排放</span><input id="gridFactor" type="number" ${defAttr(ENERGY_DEFAULTS.electric.factor)} class="w-16 md:w-20 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-xs md:text-sm"><span class="ml-1 md:ml-2 text-[10px] md:text-xs font-bold">kg/kWh</span></div>
                     </div>
                     ${['gas|气|m³', 'coal|煤|kg', 'fuel|油|kg', 'biomass|生物|kg', 'steam|蒸汽|kg'].map(item => {
-            const [k, n, u] = item.split('|');
-            return `
+                        const [k, n, u] = item.split('|');
+                        return `
                         <div class="bg-gray-50 p-2 md:p-3 rounded-lg flex justify-between items-center border border-gray-200 related-to-${k}">
                             <span class="text-xs md:text-sm font-bold text-gray-700">${n}</span>
                             <div class="flex items-center gap-1 md:gap-2">
@@ -280,15 +288,16 @@ function generateOperatingInputsHTML() {
                                         <option value="kcal">kcal</option>
                                         <option value="kWh">kWh</option>
                                     </select>
+                                    <span class="text-xs font-bold text-gray-500 ml-1">/${u}</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span class="text-[10px] md:text-xs mr-1 font-bold hidden lg:inline">排放</span>
                                     <input id="${k}Factor" type="number" ${defAttr(ENERGY_DEFAULTS[k].factor)} class="w-12 md:w-16 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-[10px] md:text-sm">
-                                    <span class="text-[10px] md:text-xs font-bold text-gray-500 ml-0.5">kg</span>
+                                    <span class="text-[10px] md:text-xs font-bold text-gray-500 ml-0.5">kg/${u}</span>
                                 </div>
                             </div>
                         </div>`;
-        }).join('')}
+                    }).join('')}
                 </div>
             </details>
         </div>
@@ -300,21 +309,16 @@ function generateOperatingInputsHTML() {
                     <input type="number" id="hpOpexCost" ${defAttr(ENERGY_DEFAULTS.hp.opex)} class="flex-1 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-base md:text-lg font-bold text-blue-800 text-center h-10 md:h-12 shadow-sm">
                 </div>
                 ${[
-            { id: 'gas', label: '天然气', val: ENERGY_DEFAULTS.gas.opex }, { id: 'coal', label: '燃煤', val: ENERGY_DEFAULTS.coal.opex },
-            { id: 'electric', label: '电锅炉', val: ENERGY_DEFAULTS.electric.opex }, { id: 'steam', label: '蒸汽', val: ENERGY_DEFAULTS.steam.opex },
-            { id: 'fuel', label: '燃油', val: ENERGY_DEFAULTS.fuel.opex }, { id: 'biomass', label: '生物质', val: ENERGY_DEFAULTS.biomass.opex }
-        ].map(item => `
+                    {id:'gas', label:'天然气', val:ENERGY_DEFAULTS.gas.opex}, {id:'coal', label:'燃煤', val:ENERGY_DEFAULTS.coal.opex},
+                    {id:'electric', label:'电锅炉', val:ENERGY_DEFAULTS.electric.opex}, {id:'steam', label:'蒸汽', val:ENERGY_DEFAULTS.steam.opex},
+                    {id:'fuel', label:'燃油', val:ENERGY_DEFAULTS.fuel.opex}, {id:'biomass', label:'生物质', val:ENERGY_DEFAULTS.biomass.opex}
+                ].map(item => `
                     <div class="flex items-center justify-between related-to-${item.id}">
                         <span class="text-sm md:text-base font-bold text-gray-600 w-20 md:w-24">${item.label}</span>
                         <input type="number" id="${item.id}OpexCost" ${defAttr(item.val)} class="flex-1 px-3 py-2 bg-gray-50 border border-transparent rounded-lg text-base md:text-lg font-bold text-gray-700 text-center h-10 md:h-12">
                     </div>
                 `).join('')}
             </div>
-        </div>
-        <div class="mt-8 pt-4 border-t border-gray-200 text-center pb-24">
-            <p class="text-sm font-bold text-gray-700">创作：荆炎荣</p>
-            <p id="usage-counter" class="text-xs text-blue-500 font-bold mt-1">累计运行：0 次</p>
-            <p class="text-[10px] text-gray-400 mt-2 leading-tight px-4">免责声明：本工具计算结果仅供参考，不作为最终投资决策依据。具体参数请咨询专业设计院。</p>
         </div>
     `;
 }
@@ -381,9 +385,11 @@ export function initializeUI(handleCalculate) {
     injectAccordionContent('accordion-financial', '4. 财务模型', generateFinancialInputsHTML());
 
     Dashboard.initializeDashboard();
-    setupInputMonitoring();
-    setupUnitAutoConverters();
+    setupInputMonitoring(); 
+    setupUnitAutoConverters(); 
     updateUsageDisplay();
+    setupModeToggles(); 
+    setupScenarioLogic(); // 启动暂存逻辑
 
     const calcBtn = document.getElementById('calculateBtn');
     if (calcBtn) calcBtn.addEventListener('click', () => {
@@ -391,10 +397,7 @@ export function initializeUI(handleCalculate) {
         handleCalculate();
     });
 
-    setupSimpleUnitConverter('heatingLoadUnit', 'heatingLoad', { 'kW': 1, 'kcal/h': 1 / 1.163 });
-
-    // [新增] 模式切换监听
-    setupModeToggles();
+    setupSimpleUnitConverter('heatingLoadUnit', 'heatingLoad', {'kW': 1, 'kcal/h': 1/1.163}); 
 
     const addTierBtn = document.getElementById('addPriceTierBtn');
     if (addTierBtn) {
@@ -409,31 +412,184 @@ export function initializeUI(handleCalculate) {
     setupExportButton();
 
     const resetBtn = document.getElementById('btn-reset-params');
-    if (resetBtn) resetBtn.addEventListener('click', resetParams);
-
+    if(resetBtn) resetBtn.addEventListener('click', resetParams);
+    
     const scenarioToggle = document.getElementById('enableScenarioComparison');
     if (scenarioToggle) {
         scenarioToggle.addEventListener('change', () => {
             const saveBtn = document.getElementById('saveScenarioBtn');
             const scenarioTab = document.querySelector('.tab-link[data-tab="scenarios"]');
-            if (scenarioToggle.checked) {
-                if (saveBtn) saveBtn.classList.remove('hidden');
-                if (scenarioTab) scenarioTab.classList.remove('hidden');
+            if(scenarioToggle.checked) {
+                if(saveBtn) saveBtn.classList.remove('hidden');
+                if(scenarioTab) scenarioTab.classList.remove('hidden');
             } else {
-                if (saveBtn) saveBtn.classList.add('hidden');
-                if (scenarioTab) scenarioTab.classList.add('hidden');
+                if(saveBtn) saveBtn.classList.add('hidden');
+                if(scenarioTab) scenarioTab.classList.add('hidden');
             }
         });
         scenarioToggle.dispatchEvent(new Event('change'));
     }
-
-    window.updateSimplePriceTier = function (val) { };
+    
+    window.updateSimplePriceTier = function(val) {}; 
 }
+
+// 暂存逻辑
+// src/js/ui.js
+
+function setupScenarioLogic() {
+    // [关键修复] 强制重置表格结构，确保表头包含所有列
+    // 之前有条件判断 if (!tableWrapper)，导致旧结构无法更新，现在移除判断，每次初始化都重写
+    const scenarioTab = document.getElementById('tab-scenarios');
+    if (scenarioTab) {
+        scenarioTab.innerHTML = `
+             <div id="scenario-table-wrapper" class="hidden overflow-x-auto">
+                 <table class="min-w-full divide-y divide-gray-200" id="scenario-comparison-table">
+                     <thead class="bg-gray-100">
+                         <tr>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">方案名称</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">折算吨汽成本</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">综合节能率</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">投资(万)</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">年总成本(万)</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">年节省(万)</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">动态回收期</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">IRR</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">LCC(万)</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">碳减排(吨)</th>
+                             <th class="px-4 py-3"><span class="sr-only">操作</span></th>
+                         </tr>
+                     </thead>
+                     <tbody class="bg-white divide-y divide-gray-100 text-lg font-medium"></tbody>
+                 </table>
+             </div>
+             <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 text-lg font-medium">暂无暂存方案</div>
+             <div class="mt-8 flex justify-end gap-4">
+                 <button id="undoClearBtn" class="hidden text-base font-bold text-blue-600 hover:text-blue-800">撤销</button>
+                 <button id="clearScenariosBtn" class="hidden text-base font-bold text-red-600 hover:text-red-800">清空</button>
+             </div>
+        `;
+    }
+
+    const saveBtn = document.getElementById('saveScenarioBtn');
+    // 重新绑定保存按钮 (使用 cloneNode 清除旧监听器，防止重复绑定)
+    if (saveBtn) {
+        const newBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+        
+        newBtn.addEventListener('click', () => {
+            if (!latestResults) {
+                alert("请先运行计算，再暂存方案。");
+                return;
+            }
+            
+            let modeName = "热泵";
+            if (latestResults.inputs.isHybridMode) modeName = "混合";
+            if (latestResults.inputs.isBOTMode) modeName += "(BOT)";
+            
+            const bestComp = latestResults.comparisons.sort((a, b) => b.annualSaving - a.annualSaving)[0];
+            
+            const snapshot = {
+                id: Date.now(),
+                name: `方案${savedScenarios.length + 1}：${latestResults.inputs.projectName} [${modeName}]`,
+                unitSteamCost: latestResults.hp.unitSteamCost,
+                savingRate: bestComp ? bestComp.savingRate : 0,
+                invest: latestResults.hp.initialInvestment,
+                annualTotalCost: latestResults.hp.annualTotalCost,
+                annualSaving: bestComp ? bestComp.annualSaving : 0,
+                dynamicPBP: bestComp ? bestComp.dynamicPBP : '-',
+                irr: bestComp ? bestComp.irr : null,
+                lcc: latestResults.hp.lcc.total,
+                co2: bestComp ? bestComp.co2Reduction : 0,
+                timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            };
+            savedScenarios.push(snapshot);
+            updateScenarioTable();
+            Dashboard.switchTab('scenarios');
+            
+            if(Dashboard.showGlobalNotification) {
+                Dashboard.showGlobalNotification('方案已暂存', 'success');
+            }
+        });
+    }
+    
+    // 重新绑定清空逻辑
+    const scenariosTab = document.getElementById('tab-scenarios');
+    if(scenariosTab) {
+        scenariosTab.onclick = (e) => {
+            if (e.target.id === 'clearScenariosBtn') {
+                if (savedScenarios.length === 0) return;
+                if (confirm('确定要清空所有暂存方案吗？')) {
+                    deletedScenariosBackup = [...savedScenarios];
+                    savedScenarios = [];
+                    updateScenarioTable();
+                    const uBtn = document.getElementById('undoClearBtn');
+                    if(uBtn) {
+                        uBtn.classList.remove('hidden');
+                        setTimeout(() => uBtn.classList.add('hidden'), 5000);
+                    }
+                }
+            }
+            if (e.target.id === 'undoClearBtn') {
+                savedScenarios = [...deletedScenariosBackup];
+                deletedScenariosBackup = [];
+                updateScenarioTable();
+                e.target.classList.add('hidden');
+            }
+        };
+    }
+}
+
+function updateScenarioTable() {
+    const tbody = document.querySelector('#scenario-comparison-table tbody');
+    const wrapper = document.getElementById('scenario-table-wrapper');
+    const emptyMsg = document.getElementById('scenario-empty-msg');
+    const clearBtn = document.getElementById('clearScenariosBtn');
+    
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (savedScenarios.length === 0) {
+        if(wrapper) wrapper.classList.add('hidden');
+        if(emptyMsg) emptyMsg.classList.remove('hidden');
+        if(clearBtn) clearBtn.classList.add('hidden');
+        return;
+    }
+    
+    if(wrapper) wrapper.classList.remove('hidden');
+    if(emptyMsg) emptyMsg.classList.add('hidden');
+    if(clearBtn) clearBtn.classList.remove('hidden');
+    
+    savedScenarios.forEach((s, index) => {
+        const tr = document.createElement('tr');
+        tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+        tr.innerHTML = `
+            <td class="px-4 py-3 text-sm font-bold text-gray-800 whitespace-nowrap">${s.name} <span class="text-xs text-gray-400 ml-1">${s.timestamp}</span></td>
+            <td class="px-4 py-3 text-sm text-blue-600 font-bold whitespace-nowrap">${fYuan(s.unitSteamCost, 1)}</td>
+            <td class="px-4 py-3 text-sm text-green-600 font-bold whitespace-nowrap">${fPercent(s.savingRate)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${fWan(s.invest)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${fWan(s.annualTotalCost)}</td>
+            <td class="px-4 py-3 text-sm font-bold text-green-600 whitespace-nowrap">${fWan(s.annualSaving)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap text-center">${s.dynamicPBP}</td>
+            <td class="px-4 py-3 text-sm font-bold whitespace-nowrap text-center ${s.irr > 0.08 ? 'text-green-600' : 'text-yellow-600'}">${s.irr ? fPercent(s.irr) : '-'}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${fWan(s.lcc)}</td>
+            <td class="px-4 py-3 text-sm text-green-600 whitespace-nowrap">${fNum(s.co2, 1)}</td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button class="text-red-400 hover:text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded" onclick="removeScenario(${s.id})">删除</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.removeScenario = function(id) {
+    savedScenarios = savedScenarios.filter(s => s.id !== id);
+    updateScenarioTable();
+};
 
 function setupModeToggles() {
     const modeRadios = document.querySelectorAll('input[name="calcMode"]');
     modeRadios.forEach(r => r.addEventListener('change', updateCalcModeUI));
-    updateCalcModeUI();
+    updateCalcModeUI(); 
 
     const toggles = document.querySelectorAll('.comparison-toggle');
     toggles.forEach(t => t.addEventListener('change', updateComparisonStyles));
@@ -443,7 +599,7 @@ function setupModeToggles() {
     systemRadios.forEach(r => r.addEventListener('change', (e) => {
         const val = e.target.value;
         const hybridDiv = document.getElementById('hybrid-params');
-        if (val === 'hybrid') {
+        if(val === 'hybrid') {
             hybridDiv.classList.remove('hidden');
         } else {
             hybridDiv.classList.add('hidden');
@@ -454,7 +610,7 @@ function setupModeToggles() {
     financeRadios.forEach(r => r.addEventListener('change', (e) => {
         const val = e.target.value;
         const botDiv = document.getElementById('bot-params');
-        if (val === 'bot') {
+        if(val === 'bot') {
             botDiv.classList.remove('hidden');
         } else {
             botDiv.classList.add('hidden');
@@ -471,7 +627,7 @@ function incrementUsageCounter() {
 
 function updateUsageDisplay(count = null) {
     if (count === null) count = parseInt(localStorage.getItem('heat_pump_usage_count') || '0');
-    const el = document.querySelectorAll('#usage-counter'); // 可能有两个，都更新
+    const el = document.querySelectorAll('#usage-counter');
     el.forEach(e => e.textContent = `累计运行：${count} 次`);
 }
 
@@ -483,12 +639,10 @@ function setupUnitAutoConverters() {
             const inputEl = document.getElementById(targetId);
             const newUnit = select.value;
             const oldUnit = select.dataset.prevUnit;
-
             if (inputEl && inputEl.value) {
                 const val = parseFloat(inputEl.value);
                 const factorOld = LOCAL_CONVERTERS[oldUnit];
                 const factorNew = LOCAL_CONVERTERS[newUnit];
-
                 if (factorOld && factorNew) {
                     const newVal = val * (factorOld / factorNew);
                     inputEl.value = parseFloat(newVal.toPrecision(5));
@@ -504,9 +658,9 @@ function setupUnitAutoConverters() {
 function setupInputMonitoring() {
     document.querySelectorAll('input[data-default], select[data-default]').forEach(el => {
         el.addEventListener('input', () => {
-            if (el.type === 'checkbox') return;
+            if(el.type === 'checkbox') return;
             const isModified = el.value != el.dataset.default;
-            if (isModified) {
+            if(isModified) {
                 el.classList.add('text-blue-600', 'border-blue-500');
                 el.classList.remove('text-gray-900', 'border-gray-300');
             } else {
@@ -566,7 +720,7 @@ function updateComparisonStyles() {
         const containers = document.querySelectorAll(`.related-to-${target}`);
         containers.forEach(container => {
             const inputs = container.querySelectorAll('input:not(.comparison-toggle), button');
-            if (!toggle.checked) {
+            if(!toggle.checked) {
                 container.classList.add('opacity-40', 'grayscale');
                 inputs.forEach(i => i.disabled = true);
             } else {
@@ -580,18 +734,18 @@ function updateComparisonStyles() {
 function setupSimpleUnitConverter(selectId, inputId, factors) {
     const sel = document.getElementById(selectId);
     const inp = document.getElementById(inputId);
-    if (!sel || !inp) return;
-    sel.addEventListener('change', () => { });
+    if(!sel || !inp) return;
+    sel.addEventListener('change', () => {});
 }
 
-function resetParams() { if (confirm('确定要恢复默认参数吗？')) location.reload(); }
+function resetParams() { if(confirm('确定要恢复默认参数吗？')) location.reload(); }
 
 function setupExportButton() {
     const btn = document.getElementById('export-report-btn');
     if (btn) btn.addEventListener('click', () => { if (!latestResults) { alert("请先进行计算"); return; } buildPrintReport(latestResults); setTimeout(() => { window.print(); }, 500); });
 }
 
-// 核心功能：数据读取 (V19.15 包含混合动力/BOT读取)
+// 核心功能：数据读取
 export function readAllInputs(showErrorCallback) {
     const getVal = (id) => { const el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; };
     const getValByUnit = (id, unitId) => {
@@ -600,36 +754,34 @@ export function readAllInputs(showErrorCallback) {
         if (unitEl && val > 0) {
             return { value: val, unit: unitEl.value };
         }
-        return { value: val, unit: 'MJ' };
+        return { value: val, unit: 'MJ' }; 
     };
 
     const priceTiers = [];
     document.querySelectorAll('.price-tier-entry').forEach(entry => { priceTiers.push({ name: entry.querySelector('.tier-name').value, price: parseFloat(entry.querySelector('.tier-price').value) || 0, dist: parseFloat(entry.querySelector('.tier-dist').value) || 0 }); });
-    if (priceTiers.length === 0) priceTiers.push({ name: '默认', price: 0.7, dist: 100 });
+    if(priceTiers.length === 0) priceTiers.push({name:'默认', price:0.7, dist:100});
     const calcMode = document.querySelector('input[name="calcMode"]:checked').value;
     let heatingLoad = 0, operatingHours = 0, annualHeatingDemandKWh = 0;
-    if (calcMode === 'annual') { heatingLoad = getVal('heatingLoad'); operatingHours = getVal('operatingHours'); annualHeatingDemandKWh = heatingLoad * operatingHours; }
-    else if (calcMode === 'total') { annualHeatingDemandKWh = getVal('annualHeating'); operatingHours = getVal('operatingHours_B'); heatingLoad = operatingHours > 0 ? annualHeatingDemandKWh / operatingHours : 0; }
-    else { heatingLoad = getVal('heatingLoad'); operatingHours = getVal('dailyHours') * getVal('annualDays') * (getVal('loadFactor') / 100); annualHeatingDemandKWh = heatingLoad * operatingHours; }
-
+    if (calcMode === 'annual') { heatingLoad = getVal('heatingLoad'); operatingHours = getVal('operatingHours'); annualHeatingDemandKWh = heatingLoad * operatingHours; } 
+    else if (calcMode === 'total') { annualHeatingDemandKWh = getVal('annualHeating'); operatingHours = getVal('operatingHours_B'); heatingLoad = operatingHours > 0 ? annualHeatingDemandKWh / operatingHours : 0; } 
+    else { heatingLoad = getVal('heatingLoad'); operatingHours = getVal('dailyHours') * getVal('annualDays') * (getVal('loadFactor')/100); annualHeatingDemandKWh = heatingLoad * operatingHours; }
+    
     const isGreenPower = document.getElementById('greenPowerToggle')?.checked || false;
-
-    // [新增] 读取系统/财务模式
+    
     const isHybrid = document.querySelector('input[name="systemMode"]:checked').value === 'hybrid';
     const isBOT = document.querySelector('input[name="financeMode"]:checked').value === 'bot';
     const hybridAuxType = document.getElementById('hybridAuxHeaterType')?.value || 'electric';
 
     return {
-        projectName: document.getElementById('projectName').value,
-        analysisMode: 'standard',
-
-        // 传递模式标志给 main.js
-        isHybridMode: isHybrid,
+        projectName: document.getElementById('projectName').value, 
+        analysisMode: 'standard', 
+        
+        isHybridMode: isHybrid, 
         hybridLoadShare: isHybrid ? getVal('hybridLoadShare') : 100,
         hybridAuxHeaterCapex: isHybrid ? getVal('hybridAuxHeaterCapex') * 10000 : 0,
         hybridAuxHeaterType: hybridAuxType,
         hybridAuxHeaterOpex: isHybrid ? getVal('hybridAuxHeaterOpex') * 10000 : 0,
-
+        
         isBOTMode: isBOT,
         botAnnualRevenue: getVal('botAnnualRevenue') * 10000,
         botEquityRatio: getVal('botEquityRatio') / 100,
@@ -637,14 +789,14 @@ export function readAllInputs(showErrorCallback) {
         priceTiers, heatingLoad, operatingHours, annualHeatingDemandKWh,
         lccYears: getVal('lccYears'), discountRate: getVal('discountRate') / 100, energyInflationRate: getVal('energyInflationRate') / 100, opexInflationRate: getVal('opexInflationRate') / 100,
         hpHostCapex: getVal('hpCapex') * 10000, hpStorageCapex: getVal('storageCapex') * 10000, hpSalvageRate: getVal('hpSalvageRate') / 100, hpCop: getVal('hpCop'), hpOpexCost: getVal('hpOpexCost') * 10000,
-
+        
         gasCalorificObj: getValByUnit('gasCalorific', 'gasCalorificUnit'),
         coalCalorificObj: getValByUnit('coalCalorific', 'coalCalorificUnit'),
         fuelCalorificObj: getValByUnit('fuelCalorific', 'fuelCalorificUnit'),
         biomassCalorificObj: getValByUnit('biomassCalorific', 'biomassCalorificUnit'),
         steamCalorificObj: getValByUnit('steamCalorific', 'steamCalorificUnit'),
 
-        gridFactor: isGreenPower ? 0 : getVal('gridFactor'),
+        gridFactor: isGreenPower ? 0 : getVal('gridFactor'), 
         gasFactor: getVal('gasFactor'),
         coalFactor: getVal('coalFactor'),
         fuelFactor: getVal('fuelFactor'),
@@ -656,8 +808,8 @@ export function readAllInputs(showErrorCallback) {
         coalBoilerCapex: getVal('coalBoilerCapex') * 10000, coalSalvageRate: 0.05, coalBoilerEfficiency: getVal('coalBoilerEfficiency') / 100, coalPrice: getVal('coalPrice'), coalOpexCost: getVal('coalOpexCost') * 10000,
         steamCapex: getVal('steamBoilerCapex') * 10000, steamSalvageRate: 0, steamEfficiency: 0.98, steamPrice: getVal('steamPrice'), steamOpexCost: getVal('steamOpexCost') * 10000,
         compare: { gas: document.getElementById('compare_gas').checked, coal: document.getElementById('compare_coal').checked, fuel: document.getElementById('compare_fuel').checked, electric: document.getElementById('compare_electric').checked, steam: document.getElementById('compare_steam').checked, biomass: document.getElementById('compare_biomass').checked },
-        biomassBoilerCapex: getVal('biomassBoilerCapex') * 10000, biomassSalvageRate: 0, biomassBoilerEfficiency: getVal('biomassBoilerEfficiency') / 100, biomassPrice: getVal('biomassPrice'), biomassOpexCost: getVal('biomassOpexCost') * 10000,
-        electricBoilerCapex: getVal('electricBoilerCapex') * 10000, electricSalvageRate: 0.05, electricBoilerEfficiency: getVal('electricBoilerEfficiency') / 100, electricOpexCost: getVal('electricOpexCost') * 10000, isGreenElectricity: isGreenPower
+        biomassBoilerCapex: getVal('biomassBoilerCapex') * 10000, biomassSalvageRate: 0, biomassBoilerEfficiency: getVal('biomassBoilerEfficiency')/100, biomassPrice: getVal('biomassPrice'), biomassOpexCost: getVal('biomassOpexCost') * 10000,
+        electricBoilerCapex: getVal('electricBoilerCapex') * 10000, electricSalvageRate: 0.05, electricBoilerEfficiency: getVal('electricBoilerEfficiency')/100, electricOpexCost: getVal('electricOpexCost') * 10000, isGreenElectricity: isGreenPower
     };
 }
 
@@ -665,14 +817,23 @@ export function readAllInputs(showErrorCallback) {
 export function renderDashboard(results) {
     latestResults = results;
     Dashboard.showResultsContent(); Dashboard.scrollToResults(); Dashboard.setExportButtonState(true);
-    const bestComp = results.comparisons.sort((a, b) => b.annualSaving - a.annualSaving)[0];
+    
+    // [FIXED] 确保暂存按钮解禁！
+    const saveBtn = document.getElementById('saveScenarioBtn');
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        saveBtn.classList.add('hover:bg-gray-200');
+    }
 
+    const bestComp = results.comparisons.sort((a, b) => b.annualSaving - a.annualSaving)[0];
+    
     const kpiClass = "text-2xl sm:text-3xl md:text-4xl xl:text-5xl font-black text-gray-800 mt-2 md:mt-3 tracking-tighter truncate";
 
     if (bestComp) {
         Dashboard.updateResultCard('annual-saving', `${fWan(bestComp.annualSaving)} 万`, kpiClass);
-        let irrText = '--';
-        if (bestComp.irr === null || bestComp.irr === -Infinity || bestComp.irr < -1) { irrText = '无法回收'; }
+        let irrText = '--'; 
+        if (bestComp.irr === null || bestComp.irr === -Infinity || bestComp.irr < -1) { irrText = '无法回收'; } 
         else { irrText = fPercent(bestComp.irr); }
         Dashboard.updateResultCard('irr', irrText, kpiClass);
         Dashboard.updateResultCard('pbp', `${bestComp.dynamicPBP} 年`, kpiClass);
@@ -680,16 +841,16 @@ export function renderDashboard(results) {
     } else {
         Dashboard.updateResultCard('annual-saving', '--', kpiClass); Dashboard.updateResultCard('irr', '--', kpiClass);
     }
-
+    
     setTimeout(() => {
         destroyCharts();
         const labels = ['热泵', ...results.comparisons.map(c => c.name)];
-        const eCosts = [results.hp.annualEnergyCost / 10000, ...results.comparisons.map(c => c.annualEnergyCost / 10000)];
-        const oCosts = [results.hp.annualOpex / 10000, ...results.comparisons.map(c => c.annualOpex / 10000)];
+        const eCosts = [results.hp.annualEnergyCost/10000, ...results.comparisons.map(c => c.annualEnergyCost/10000)];
+        const oCosts = [results.hp.annualOpex/10000, ...results.comparisons.map(c => c.annualOpex/10000)];
         const ctxCost = document.getElementById('costComparisonChart');
-        if (ctxCost) createCostChart(ctxCost, labels, eCosts, oCosts);
+        if(ctxCost) createCostChart(ctxCost, labels, eCosts, oCosts);
         const ctxLcc = document.getElementById('lccBreakdownChart');
-        if (ctxLcc) { const d = results.hp.lcc; createLccChart(ctxLcc, [d.capex / 10000, d.energy / 10000, d.opex / 10000, d.residual / 10000]); }
+        if(ctxLcc) { const d = results.hp.lcc; createLccChart(ctxLcc, [d.capex/10000, d.energy/10000, d.opex/10000, d.residual/10000]); }
     }, 100);
 
     const dataTab = document.getElementById('tab-data-table');
@@ -730,8 +891,9 @@ export function renderDashboard(results) {
                             <td class="px-4 py-4 whitespace-nowrap text-right font-medium">${fWan(c.annualTotalCost)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right font-bold text-green-600">${fWan(c.annualSaving)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-center font-medium">${c.dynamicPBP} 年</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center font-bold text-blue-600">${c.irr === null || c.irr < -1 ? '<span class="text-gray-400">N/A</span>' : fPercent(c.irr)
-            }</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-center font-bold text-blue-600">${
+                                c.irr === null || c.irr < -1 ? '<span class="text-gray-400">N/A</span>' : fPercent(c.irr)
+                            }</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right font-medium hidden lg:table-cell">${fWan(c.lccTotal)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right text-green-600 font-bold hidden lg:table-cell">${fNum(c.co2Reduction, 1)}</td>
                         </tr>
@@ -742,7 +904,7 @@ export function renderDashboard(results) {
             <p class="text-sm text-gray-400 mt-4 md:mt-6">* 注：LCC (全生命周期成本) 已包含资金时间价值，折现率 ${fPercent(results.inputs.discountRate)}。<br>* 折算吨汽成本基于标准蒸汽热值 (约698kWh/吨) 计算。</p>
         `;
     }
-
+    
     const conclusionTab = document.getElementById('tab-conclusion');
     if (conclusionTab && bestComp) {
         const isGood = bestComp.irr > 0.08;
@@ -768,12 +930,12 @@ function setupEfficiencyCalculator() {
     const calcBtn = document.getElementById('ec-calc-btn');
     const applyBtn = document.getElementById('ec-apply-btn');
     const fuelUnitLabel = document.getElementById('ec-fuel-unit');
-    if (!modal) return;
-
+    if (!modal) return; 
+    
     const autoFillDefaults = (type) => {
         const defaults = EFF_CALC_DEFAULTS[type];
-        if (!defaults) return;
-        if (type === 'water') {
+        if(!defaults) return;
+        if(type === 'water') {
             document.getElementById('ec-water-mass').value = defaults.mass;
             document.getElementById('ec-water-in-temp').value = defaults.tempIn;
             document.getElementById('ec-water-out-temp').value = defaults.tempOut;
@@ -809,51 +971,51 @@ function setupEfficiencyCalculator() {
             const fuelType = btn.dataset.fuel;
             currentEfficiencyTargetId = targetId;
             const select = document.getElementById('ec-fuel-type');
-            if (select) {
-                select.value = fuelType;
-                fuelUnitLabel.textContent = (fuelType === 'gas') ? 'm³' : 'kg';
+            if(select) { 
+                select.value = fuelType; 
+                fuelUnitLabel.textContent = (fuelType === 'gas') ? 'm³' : 'kg'; 
             }
             document.querySelector('input[name="ec-output-type"][value="water"]').click();
             modal.classList.remove('hidden');
         }
     });
-    if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-
-    if (calcBtn) calcBtn.addEventListener('click', () => {
+    if(closeBtn) closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    
+    if(calcBtn) calcBtn.addEventListener('click', () => {
         const fuelType = document.getElementById('ec-fuel-type').value;
         const fuelAmount = parseFloat(document.getElementById('ec-fuel-amount').value);
         let calorificValue = 0;
-
+        
         if (fuelType === 'gas') calorificValue = parseFloat(document.getElementById('gasCalorific').value);
         else if (fuelType === 'fuel') calorificValue = parseFloat(document.getElementById('fuelCalorific').value);
         else if (fuelType === 'coal') calorificValue = parseFloat(document.getElementById('coalCalorific').value);
         else if (fuelType === 'biomass') calorificValue = parseFloat(document.getElementById('biomassCalorific').value);
-
+        
         const outputType = document.querySelector('input[name="ec-output-type"]:checked').value;
         let params = {};
-
+        
         if (outputType === 'water') {
             params = { mass: parseFloat(document.getElementById('ec-water-mass').value), tempIn: parseFloat(document.getElementById('ec-water-in-temp').value), tempOut: parseFloat(document.getElementById('ec-water-out-temp').value) };
         } else {
             params = { mass: parseFloat(document.getElementById('ec-steam-mass').value), pressure: parseFloat(document.getElementById('ec-steam-pressure').value), feedTemp: parseFloat(document.getElementById('ec-steam-feed-temp').value) };
         }
-
+        
         const result = calculateBoilerEfficiency(fuelType, fuelAmount, calorificValue, outputType, params);
         const display = document.getElementById('ec-result-display');
-
-        if (result.error) {
-            display.textContent = "Error";
-            display.className = "text-3xl font-black text-red-500 tracking-tight";
-            applyBtn.disabled = true;
-        } else {
-            display.textContent = result.efficiency.toFixed(1) + " %";
-            display.className = "text-3xl font-black text-blue-600 tracking-tight";
-            applyBtn.disabled = false;
-            applyBtn.dataset.value = result.efficiency.toFixed(1);
+        
+        if (result.error) { 
+            display.textContent = "Error"; 
+            display.className = "text-3xl font-black text-red-500 tracking-tight"; 
+            applyBtn.disabled = true; 
+        } else { 
+            display.textContent = result.efficiency.toFixed(1) + " %"; 
+            display.className = "text-3xl font-black text-blue-600 tracking-tight"; 
+            applyBtn.disabled = false; 
+            applyBtn.dataset.value = result.efficiency.toFixed(1); 
         }
     });
-
-    if (applyBtn) applyBtn.addEventListener('click', () => {
+    
+    if(applyBtn) applyBtn.addEventListener('click', () => {
         if (currentEfficiencyTargetId && applyBtn.dataset.value) {
             const target = document.getElementById(currentEfficiencyTargetId);
             if (target) { target.value = applyBtn.dataset.value; modal.classList.add('hidden'); document.getElementById('calculateBtn')?.click(); }

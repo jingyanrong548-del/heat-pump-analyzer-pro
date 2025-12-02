@@ -9,7 +9,6 @@ html {
     scroll-behavior: smooth;
 }
 
-/* App 级滚动条美化 */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -53,19 +52,22 @@ html {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* [关键修复] 移除 translate(-50%)，只保留垂直(Y轴)位移 */
 .animate-fadeInUp {
     animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes fadeInUp {
-    /* 旧代码：transform: translate(-50%, 40px);  <-- 这是导致偏左的元凶 */
-    /* 新代码：transform: translateY(40px);        <-- 只向上浮动 */
     from { opacity: 0; transform: translateY(40px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* [关键修复] Tab 样式重构 */
+.tab-link {
+    @apply relative cursor-pointer transition-all duration-200 ease-in-out whitespace-nowrap border-b-4 border-transparent text-gray-500 hover:text-gray-700;
+}
+
+/* 激活状态：文字变蓝，底边框变蓝 */
 .tab-link.tab-active {
-    @apply border-blue-600 text-blue-700;
+    @apply border-blue-600 text-blue-700 font-black;
 }
 
 input[data-default].text-blue-600 {
