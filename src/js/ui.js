@@ -1,5 +1,5 @@
 // src/js/ui.js
-// V19.20 FIXED: Complete File with Full Logic Restoration
+// V19.21: Startup Prompts + Enhanced Empty State + All Logic
 
 import { ENERGY_DEFAULTS, EFF_CALC_DEFAULTS } from './config.js'; 
 import { validateInput } from './ui-validator.js';
@@ -7,28 +7,20 @@ import { calculateBoilerEfficiency, fWan, fYuan, fInt, fNum, fTon, fCop, fPercen
 import * as Dashboard from './ui-dashboard.js';
 import { createCostChart, createLccChart, destroyCharts } from './ui-chart.js';
 
-// --- 全局状态 ---
 let latestResults = null;
 let savedScenarios = []; 
 let deletedScenariosBackup = [];
 
 const defAttr = (val) => `value="${val}" data-default="${val}"`;
+const LOCAL_CONVERTERS = { 'MJ': 1, 'kJ': 0.001, 'kcal': 0.004186, 'kWh': 3.6 };
 
-// --- 内置单位换算系数 (基准单位：MJ) ---
-const LOCAL_CONVERTERS = {
-    'MJ': 1,
-    'kJ': 0.001,
-    'kcal': 0.004186,
-    'kWh': 3.6
-};
-
-// --- 样式常量 (响应式适配) ---
+// --- 样式常量 ---
 const INPUT_STYLE = "w-full px-3 md:px-4 py-2 bg-white border border-gray-300 rounded-lg text-base md:text-lg font-bold text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all outline-none placeholder-gray-400 h-10 md:h-12 shadow-sm";
 const LABEL_STYLE = "block text-sm font-bold text-gray-600 mb-1 md:mb-2 tracking-wide";
 const GROUP_STYLE = "bg-white p-1 mb-4 md:mb-6";
 
 // ==========================================
-// 1. HTML 生成器
+// 1. HTML 生成器 (保持 V19 系列一致)
 // ==========================================
 
 function generateProjectInputsHTML() {
@@ -37,7 +29,6 @@ function generateProjectInputsHTML() {
             <label class="${LABEL_STYLE}">项目名称</label>
             <input type="text" id="projectName" ${defAttr("示例项目")} class="${INPUT_STYLE}">
         </div>
-
         <div class="pt-4 md:pt-6 border-t border-gray-200">
             <label class="${LABEL_STYLE} mb-3 md:mb-4">负荷计算模式</label>
             <div class="grid grid-cols-3 gap-2 md:gap-3">
@@ -64,7 +55,6 @@ function generateProjectInputsHTML() {
                 </label>
             </div>
         </div>
-
         <div id="input-group-load" class="space-y-4 md:space-y-6 mt-4 md:mt-6">
             <div>
                 <div class="flex justify-between items-center mb-1 md:mb-2">
@@ -74,14 +64,12 @@ function generateProjectInputsHTML() {
                 <input type="number" id="heatingLoad" ${defAttr("1000")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
         </div>
-
         <div id="input-group-hours-a" class="space-y-4 md:space-y-6 mt-4 md:mt-6">
             <div>
                 <label class="${LABEL_STYLE}">年运行小时 (h)</label>
                 <input type="number" id="operatingHours" ${defAttr("2000")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
         </div>
-
         <div id="input-group-total" class="space-y-4 md:space-y-6 mt-4 md:mt-6 hidden">
             <div>
                 <div class="flex justify-between items-center mb-1 md:mb-2">
@@ -95,7 +83,6 @@ function generateProjectInputsHTML() {
                 <input type="number" id="operatingHours_B" ${defAttr("2000")} class="${INPUT_STYLE}" placeholder="自动计算">
             </div>
         </div>
-
         <div id="input-group-daily" class="space-y-4 md:space-y-6 mt-4 md:mt-6 hidden">
             <div class="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
@@ -130,7 +117,6 @@ function generateSchemeInputsHTML() {
                 </label>
             </div>
         </div>
-
         <div class="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
             <div>
                 <label class="${LABEL_STYLE}">热泵投资 (万)</label>
@@ -141,7 +127,6 @@ function generateSchemeInputsHTML() {
                 <input type="number" id="storageCapex" ${defAttr("0")} class="${INPUT_STYLE}">
             </div>
         </div>
-
         <div id="hybrid-params" class="hidden mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl animate-fadeIn">
              <h4 class="text-sm font-bold text-orange-800 mb-4 flex items-center"><span class="mr-2">🔥</span>混合动力配置</h4>
              <div class="space-y-4">
@@ -175,7 +160,6 @@ function generateSchemeInputsHTML() {
                  </div>
              </div>
         </div>
-        
         <div class="pt-4 md:pt-6 border-t border-gray-200">
              <label class="block text-base font-bold text-gray-800 mb-3 md:mb-4 flex items-center">
                 <span class="w-1.5 h-4 bg-blue-600 rounded-full mr-2"></span>对比基准配置
@@ -216,7 +200,6 @@ function generateOperatingInputsHTML() {
             </label>
             <input type="number" id="hpCop" ${defAttr(ENERGY_DEFAULTS.hp.cop)} step="0.1" class="${INPUT_STYLE} !text-xl md:!text-2xl !text-blue-700" data-validation="isStrictlyPositive">
         </div>
-
         <div class="pt-4 md:pt-6 border-t border-dashed border-gray-200 space-y-4 md:space-y-6">
              <div>
                 <div class="flex justify-between items-center mb-2 md:mb-4">
@@ -225,13 +208,11 @@ function generateOperatingInputsHTML() {
                 </div>
                 <div id="priceTiersContainer" class="space-y-2 md:space-y-3 mb-2 md:mb-4"></div>
                 <input type="hidden" id="simple_avg_price" value="${ENERGY_DEFAULTS.electric.price}" class="track-change"> 
-                
                 <label class="flex items-center cursor-pointer p-2 md:p-3 bg-green-50/50 border border-green-200 rounded-xl hover:border-green-300 transition">
                     <input type="checkbox" id="greenPowerToggle" class="w-4 h-4 md:w-5 md:h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 track-change">
                     <span class="ml-2 md:ml-3 text-sm md:text-base font-bold text-green-800">启用绿电 (零碳模式)</span>
                 </label>
              </div>
-
              <div class="grid grid-cols-2 gap-3 md:gap-4">
                  <div class="related-to-gas"><label class="${LABEL_STYLE}">气价 (元/m³)</label><input type="number" id="gasPrice" ${defAttr(ENERGY_DEFAULTS.gas.price)} class="${INPUT_STYLE}"></div>
                  <div class="related-to-coal"><label class="${LABEL_STYLE}">煤价 (元/t)</label><input type="number" id="coalPrice" ${defAttr(ENERGY_DEFAULTS.coal.price)} class="${INPUT_STYLE}"></div>
@@ -240,7 +221,6 @@ function generateOperatingInputsHTML() {
                  <div class="related-to-biomass"><label class="${LABEL_STYLE}">生物质 (元/t)</label><input type="number" id="biomassPrice" ${defAttr(ENERGY_DEFAULTS.biomass.price)} class="${INPUT_STYLE}"></div>
              </div>
         </div>
-
         <div class="pt-4 md:pt-6 border-t border-dashed border-gray-200">
             <label class="${LABEL_STYLE} mb-2 md:mb-4">锅炉效率 (%)</label>
             <div class="space-y-2 md:space-y-3">
@@ -262,7 +242,6 @@ function generateOperatingInputsHTML() {
                 `).join('')}
             </div>
         </div>
-
         <div class="mt-4 md:mt-6 pt-4 border-t border-dashed border-gray-200">
             <details class="group">
                 <summary class="flex justify-between items-center font-bold cursor-pointer list-none text-gray-500 hover:text-blue-600 transition-colors text-sm md:text-base select-none py-2 bg-gray-50 rounded-lg px-3">
@@ -338,7 +317,6 @@ function generateFinancialInputsHTML() {
                 </label>
             </div>
         </div>
-
         <div class="space-y-4 md:space-y-6">
             <div>
                 <label class="${LABEL_STYLE}">分析年限 (年)</label>
@@ -348,13 +326,11 @@ function generateFinancialInputsHTML() {
                 <label class="${LABEL_STYLE}">折现率 (%)</label>
                 <input type="number" id="discountRate" ${defAttr("8")} class="${INPUT_STYLE}">
             </div>
-            
             <div id="bot-params" class="hidden p-4 bg-purple-50 border border-purple-100 rounded-xl space-y-4 animate-fadeIn">
                 <h4 class="text-sm font-bold text-purple-800 mb-2 flex items-center"><span class="mr-2">💰</span>BOT 参数设置</h4>
                 <div><label class="${LABEL_STYLE}">年服务费收入 (万)</label><input type="number" id="botAnnualRevenue" ${defAttr("150")} class="${INPUT_STYLE} border-purple-200 focus:border-purple-500 text-purple-900"></div>
                 <div><label class="${LABEL_STYLE}">自有资金比例 (%)</label><input type="number" id="botEquityRatio" ${defAttr("30")} class="${INPUT_STYLE} border-purple-200 focus:border-purple-500 text-purple-900"></div>
             </div>
-
             <div class="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
                     <label class="${LABEL_STYLE}">能源涨幅(%)</label>
@@ -389,7 +365,26 @@ export function initializeUI(handleCalculate) {
     setupUnitAutoConverters(); 
     updateUsageDisplay();
     setupModeToggles(); 
-    setupScenarioLogic(); // 启动暂存逻辑
+    setupScenarioLogic(); 
+
+    // [新增] 启动时的欢迎提示 (Toast)
+    setTimeout(() => {
+        if(Dashboard.showGlobalNotification) {
+            Dashboard.showGlobalNotification('👋 欢迎使用！请在左侧配置参数，然后点击“运行计算”开启分析。', 'info', 4000);
+        }
+    }, 800);
+
+    // [新增] 优化右侧空白页的提示语 (Empty State)
+    const placeholder = document.getElementById('report-placeholder');
+    if(placeholder) {
+        placeholder.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-10 opacity-60">
+                <svg class="w-24 h-24 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-4a2 2 0 012-2h2a2 2 0 012 2v4M9 17h6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <h3 class="text-2xl font-bold text-gray-400 mb-2">暂无分析数据</h3>
+                <p class="text-gray-400">请在左侧侧边栏输入项目参数，<br>并点击 <span class="font-bold text-blue-500">“运行计算”</span> 按钮。</p>
+            </div>
+        `;
+    }
 
     const calcBtn = document.getElementById('calculateBtn');
     if (calcBtn) calcBtn.addEventListener('click', () => {
@@ -433,12 +428,12 @@ export function initializeUI(handleCalculate) {
     window.updateSimplePriceTier = function(val) {}; 
 }
 
-// 暂存逻辑
-// src/js/ui.js
+// src/js/ui.js 中需要修改的两个函数
 
+// 1. 补全表头：增加折算成本、节能率、年节省、回收期、碳减排等列
 function setupScenarioLogic() {
-    // [关键修复] 强制重置表格结构，确保表头包含所有列
-    // 之前有条件判断 if (!tableWrapper)，导致旧结构无法更新，现在移除判断，每次初始化都重写
+    let tableWrapper = document.getElementById('scenario-table-wrapper');
+    // 强制重置 HTML 以更新表头结构
     const scenarioTab = document.getElementById('tab-scenarios');
     if (scenarioTab) {
         scenarioTab.innerHTML = `
@@ -468,11 +463,13 @@ function setupScenarioLogic() {
                  <button id="clearScenariosBtn" class="hidden text-base font-bold text-red-600 hover:text-red-800">清空</button>
              </div>
         `;
+        tableWrapper = document.getElementById('scenario-table-wrapper');
     }
 
+    // 重新绑定保存按钮
     const saveBtn = document.getElementById('saveScenarioBtn');
-    // 重新绑定保存按钮 (使用 cloneNode 清除旧监听器，防止重复绑定)
     if (saveBtn) {
+        // 移除旧监听器（通过克隆节点）防止重复绑定
         const newBtn = saveBtn.cloneNode(true);
         saveBtn.parentNode.replaceChild(newBtn, saveBtn);
         
@@ -488,6 +485,7 @@ function setupScenarioLogic() {
             
             const bestComp = latestResults.comparisons.sort((a, b) => b.annualSaving - a.annualSaving)[0];
             
+            // 抓取全量数据快照
             const snapshot = {
                 id: Date.now(),
                 name: `方案${savedScenarios.length + 1}：${latestResults.inputs.projectName} [${modeName}]`,
@@ -539,6 +537,7 @@ function setupScenarioLogic() {
     }
 }
 
+// 2. 补全数据列：填充所有对应数据
 function updateScenarioTable() {
     const tbody = document.querySelector('#scenario-comparison-table tbody');
     const wrapper = document.getElementById('scenario-table-wrapper');
@@ -569,7 +568,7 @@ function updateScenarioTable() {
             <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${fWan(s.invest)}</td>
             <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${fWan(s.annualTotalCost)}</td>
             <td class="px-4 py-3 text-sm font-bold text-green-600 whitespace-nowrap">${fWan(s.annualSaving)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap text-center">${s.dynamicPBP}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap text-center">${s.dynamicPBP} 年</td>
             <td class="px-4 py-3 text-sm font-bold whitespace-nowrap text-center ${s.irr > 0.08 ? 'text-green-600' : 'text-yellow-600'}">${s.irr ? fPercent(s.irr) : '-'}</td>
             <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${fWan(s.lcc)}</td>
             <td class="px-4 py-3 text-sm text-green-600 whitespace-nowrap">${fNum(s.co2, 1)}</td>
@@ -818,7 +817,6 @@ export function renderDashboard(results) {
     latestResults = results;
     Dashboard.showResultsContent(); Dashboard.scrollToResults(); Dashboard.setExportButtonState(true);
     
-    // [FIXED] 确保暂存按钮解禁！
     const saveBtn = document.getElementById('saveScenarioBtn');
     if (saveBtn) {
         saveBtn.disabled = false;
