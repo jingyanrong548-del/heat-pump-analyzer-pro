@@ -10,24 +10,24 @@ const TITLE_FONT_SIZE = isMobile ? 14 : 20;
 
 // import Chart from 'chart.js/auto'; 
 
-Chart.defaults.font.family = "'Inter', 'Noto Sans SC', sans-serif";
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Noto Sans SC', sans-serif";
 Chart.defaults.font.size = BASE_FONT_SIZE; 
-Chart.defaults.color = '#475569'; 
+Chart.defaults.color = '#1C1C1E'; 
 
-Chart.defaults.scale.grid.color = '#e2e8f0'; 
+Chart.defaults.scale.grid.color = '#E5E5EA'; 
 Chart.defaults.scale.grid.lineWidth = 1;
 
 Chart.defaults.plugins.legend.labels.font = { 
     size: LEGEND_FONT_SIZE, 
-    weight: 'bold' 
+    weight: '500' 
 };
 Chart.defaults.plugins.legend.labels.boxWidth = isMobile ? 12 : 20;
 Chart.defaults.plugins.legend.labels.padding = isMobile ? 10 : 25;
 
-Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(28, 28, 30, 0.95)';
 Chart.defaults.plugins.tooltip.titleFont = { 
     size: TITLE_FONT_SIZE, 
-    weight: 'bold' 
+    weight: '600' 
 };
 Chart.defaults.plugins.tooltip.bodyFont = { 
     size: BASE_FONT_SIZE 
@@ -36,14 +36,14 @@ Chart.defaults.plugins.tooltip.padding = 12;
 Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
 const COLORS = {
-    hp: { fill: 'rgba(37, 99, 235, 0.9)', border: '#2563eb' }, 
-    gas: { fill: 'rgba(234, 88, 12, 0.9)', border: '#ea580c' }, 
-    fuel: { fill: 'rgba(220, 38, 38, 0.9)', border: '#dc2626' }, 
-    coal: { fill: 'rgba(71, 85, 105, 0.9)', border: '#475569' }, 
-    biomass: { fill: 'rgba(22, 163, 74, 0.9)', border: '#16a34a' }, 
-    electric: { fill: 'rgba(147, 51, 234, 0.9)', border: '#9333ea' }, 
-    steam: { fill: 'rgba(8, 145, 178, 0.9)', border: '#0891b2' },  
-    opex: '#f59e0b' 
+    hp: { fill: 'rgba(0, 122, 255, 0.85)', border: '#007AFF' }, 
+    gas: { fill: 'rgba(255, 149, 0, 0.85)', border: '#FF9500' }, 
+    fuel: { fill: 'rgba(255, 59, 48, 0.85)', border: '#FF3B30' }, 
+    coal: { fill: 'rgba(142, 142, 147, 0.85)', border: '#8E8E93' }, 
+    biomass: { fill: 'rgba(52, 199, 89, 0.85)', border: '#34C759' }, 
+    electric: { fill: 'rgba(175, 82, 222, 0.85)', border: '#AF52DE' }, 
+    steam: { fill: 'rgba(0, 199, 190, 0.85)', border: '#00C7BE' },  
+    opex: 'rgba(255, 204, 0, 0.85)' 
 };
 
 let charts = { cost: null, lcc: null };
@@ -124,7 +124,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                     title: { 
                         display: !isMobile, 
                         text: '万元/年',
-                        font: { size: 14, weight: 'bold' } 
+                        font: { size: 14, weight: '500' } 
                     },
                     stacked: true,
                     border: { display: false },
@@ -134,7 +134,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                     stacked: true,
                     grid: { display: false },
                     ticks: { 
-                        font: { weight: 'bold' },
+                        font: { weight: '500' },
                         maxRotation: 45,
                         minRotation: 0
                     } 
@@ -154,7 +154,7 @@ export function createLccChart(ctx, data) {
             labels: ['初始投资', '全周期能源', '全周期运维', '残值回收'],
             datasets: [{
                 data: plotData,
-                backgroundColor: [ '#ef4444', '#3b82f6', '#f59e0b', '#10b981' ],
+                backgroundColor: [ 'rgba(255, 59, 48, 0.85)', 'rgba(0, 122, 255, 0.85)', 'rgba(255, 204, 0, 0.85)', 'rgba(52, 199, 89, 0.85)' ],
                 borderWidth: 0,
                 hoverOffset: 15
             }]
