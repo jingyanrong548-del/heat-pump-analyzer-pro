@@ -1,5 +1,7 @@
 // src/js/ui-chart.js
-// V19.2: Responsive Charts (Fixed Cutoff Issue)
+// V9.0.0: Internationalization Support
+
+import { t } from './i18n.js';
 
 const isMobile = window.innerWidth < 768;
 
@@ -75,7 +77,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
             labels: labels,
             datasets: [
                 {
-                    label: '能源成本',
+                    label: t('chart.energyCost'),
                     data: energyCosts,
                     backgroundColor: energyBgColors,
                     borderRadius: 4,
@@ -83,7 +85,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                     barPercentage: 0.6,
                 },
                 {
-                    label: '运维成本',
+                    label: t('chart.opexCost'),
                     data: opexCosts,
                     backgroundColor: COLORS.opex,
                     borderRadius: 4,
@@ -104,7 +106,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                             let label = context.dataset.label || '';
                             if (label) label += ': ';
                             if (context.parsed.y !== null) {
-                                label += parseFloat(context.parsed.y).toFixed(2) + ' 万';
+                                label += parseFloat(context.parsed.y).toFixed(2) + ' ' + t('common.unit.tenThousand');
                             }
                             return label;
                         },
@@ -113,7 +115,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                             tooltipItems.forEach(function(tooltipItem) {
                                 total += tooltipItem.parsed.y;
                             });
-                            return '总计: ' + total.toFixed(2) + ' 万';
+                            return t('chart.total') + ': ' + total.toFixed(2) + ' ' + t('common.unit.tenThousand');
                         }
                     }
                 }
@@ -123,7 +125,7 @@ export function createCostChart(ctx, labels, energyCosts, opexCosts) {
                     beginAtZero: true,
                     title: { 
                         display: !isMobile, 
-                        text: '万元/年',
+                        text: t('chart.perYear'),
                         font: { size: 14, weight: '500' } 
                     },
                     stacked: true,
@@ -151,7 +153,7 @@ export function createLccChart(ctx, data) {
     charts.lcc = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['初始投资', '全周期能源', '全周期运维', '残值回收'],
+            labels: [t('chart.initialInvestment'), t('chart.lifetimeEnergy'), t('chart.lifetimeOpex'), t('chart.residualValue')],
             datasets: [{
                 data: plotData,
                 backgroundColor: [ 'rgba(255, 59, 48, 0.85)', 'rgba(0, 122, 255, 0.85)', 'rgba(255, 204, 0, 0.85)', 'rgba(52, 199, 89, 0.85)' ],
@@ -175,10 +177,10 @@ export function createLccChart(ctx, data) {
                             const total = context.chart._metasets[context.datasetIndex].total;
                             const percentage = ((val / total) * 100).toFixed(1) + '%';
                             const labelStr = context.label;
-                            if (labelStr === '残值回收') {
-                                return ` ${labelStr}: -${val.toFixed(1)} 万 (${percentage})`;
+                            if (labelStr === t('chart.residualValue')) {
+                                return ` ${labelStr}: -${val.toFixed(1)} ${t('common.unit.tenThousand')} (${percentage})`;
                             }
-                            return ` ${labelStr}: ${val.toFixed(1)} 万 (${percentage})`;
+                            return ` ${labelStr}: ${val.toFixed(1)} ${t('common.unit.tenThousand')} (${percentage})`;
                         }
                     }
                 }

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>工业热泵效益分析器 V19.11 (Mobile Fix)</title>
+    <title id="page-title">工业热泵效益分析器 V9.0.0</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,10 +34,16 @@
             <header
                 class="flex-none p-4 md:p-6 border-b border-gray-100 bg-white flex justify-between items-center pt-safe-top">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">效益分析</h1>
-                    <p class="mt-1 md:mt-2 text-sm md:text-lg text-blue-500 font-medium">V19.11 | 工业热泵</p>
+                    <h1 id="sidebar-title" class="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">效益分析</h1>
+                    <p id="sidebar-subtitle" class="mt-1 md:mt-2 text-sm md:text-lg text-blue-500 font-medium">V9.0.0 | 工业热泵</p>
                 </div>
-                <button id="mobile-sidebar-close" class="md:hidden p-2 text-gray-500 hover:text-gray-800">
+                <div class="flex items-center gap-2">
+                    <button id="lang-switch-btn" class="p-2 text-gray-500 hover:text-gray-800 transition-colors" title="切换语言 / Switch Language">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                    </button>
+                    <button id="mobile-sidebar-close" class="md:hidden p-2 text-gray-500 hover:text-gray-800">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -69,13 +75,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        重置
+                        <span data-i18n="button.reset">重置</span>
                     </button>
                     <label
                         class="flex items-center cursor-pointer bg-gray-100 px-4 py-2 rounded-full hover:bg-gray-200 transition-colors border border-transparent hover:border-gray-200">
                         <input type="checkbox" id="enableScenarioComparison"
                             class="h-5 w-5 md:h-6 md:w-6 rounded border-gray-300 text-blue-500 focus:ring-blue-500 track-change">
-                        <span class="ml-3 text-base md:text-lg font-medium text-gray-700">启用对比</span>
+                        <span id="enable-comparison-label" class="ml-3 text-base md:text-lg font-medium text-gray-700">启用对比</span>
                     </label>
                 </div>
 
@@ -88,12 +94,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
                             d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    运行计算
+                    <span id="calculate-btn-text">运行计算</span>
                 </button>
                 <button id="saveScenarioBtn"
                     class="w-full text-base md:text-lg bg-gray-50 text-gray-600 font-medium py-3 mt-3 rounded-2xl hover:bg-gray-100 transition-colors hidden border border-gray-100"
                     disabled>
-                    + 暂存当前方案
+                    <span id="save-scenario-btn-text">+ 暂存当前方案</span>
                 </button>
             </div>
         </aside>
@@ -108,7 +114,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                配置参数
+                <span id="mobile-config-btn-text">配置参数</span>
             </button>
         </div>
 
@@ -116,7 +122,7 @@
             class="flex-1 h-full overflow-y-auto bg-gray-50 p-4 md:p-10 relative w-full scroll-smooth pt-safe-top">
 
             <header class="flex flex-wrap justify-between items-center mb-6 md:mb-8 gap-3">
-                <h2 class="text-2xl md:text-4xl font-semibold text-gray-900 tracking-tight whitespace-nowrap">实时评估看板</h2>
+                <h2 id="dashboard-title" class="text-2xl md:text-4xl font-semibold text-gray-900 tracking-tight whitespace-nowrap">实时评估看板</h2>
                 <button id="export-report-btn"
                     class="bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-blue-500 font-medium py-2 px-4 md:py-3 md:px-6 rounded-xl text-sm md:text-lg flex items-center justify-center shadow-apple-sm transition-all shrink-0"
                     disabled>
@@ -126,29 +132,29 @@
                             d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
                             clip-rule="evenodd" />
                     </svg>
-                    <span class="md:hidden">导出</span>
-                    <span class="hidden md:inline">导出报告</span>
+                    <span id="export-btn-text-short" class="md:hidden">导出</span>
+                    <span id="export-btn-text-full" class="hidden md:inline">导出报告</span>
                 </button>
             </header>
 
             <div id="results-card-area" class="grid grid-cols-2 2xl:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
                 <div class="bg-white p-5 md:p-6 rounded-2xl shadow-apple-sm border border-gray-100">
-                    <p class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">年节省金额</p>
+                    <p id="card-annual-saving-label" class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">年节省金额</p>
                     <p id="card-annual-saving"
                         class="text-2xl md:text-5xl font-semibold text-gray-900 mt-2 md:mt-3 tracking-tight">--</p>
                 </div>
                 <div class="bg-white p-5 md:p-6 rounded-2xl shadow-apple-sm border border-gray-100">
-                    <p class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">内部收益率 (IRR)</p>
+                    <p id="card-irr-label" class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">内部收益率 (IRR)</p>
                     <p id="card-irr"
                         class="text-2xl md:text-5xl font-semibold text-gray-900 mt-2 md:mt-3 tracking-tight">--</p>
                 </div>
                 <div class="bg-white p-5 md:p-6 rounded-2xl shadow-apple-sm border border-gray-100">
-                    <p class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">动态回收期</p>
+                    <p id="card-pbp-label" class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">动态回收期</p>
                     <p id="card-pbp"
                         class="text-2xl md:text-5xl font-semibold text-gray-900 mt-2 md:mt-3 tracking-tight">--</p>
                 </div>
                 <div class="bg-white p-5 md:p-6 rounded-2xl shadow-apple-sm border border-gray-100">
-                    <p class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">年碳减排</p>
+                    <p id="card-co2-label" class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">年碳减排</p>
                     <p id="card-co2-reduction"
                         class="text-2xl md:text-5xl font-semibold text-gray-900 mt-2 md:mt-3 tracking-tight">--</p>
                 </div>
@@ -163,20 +169,20 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                             d="M9 17v-4a2 2 0 012-2h2a2 2 0 012 2v4M9 17h6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    <p class="text-lg md:text-2xl font-medium">请点击配置参数...</p>
+                    <p id="placeholder-text" class="text-lg md:text-2xl font-medium">请点击配置参数...</p>
                 </div>
 
                 <div id="report-content" class="hidden flex-1 flex flex-col h-full">
                     <div class="border-b border-gray-100 px-4 md:px-8 pt-4 md:pt-6 bg-white overflow-x-auto">
                         <nav class="-mb-px flex space-x-6 md:space-x-10 min-w-max">
                             <a href="#" data-tab="charts"
-                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-semibold text-blue-500 border-b-2 border-blue-500 transition-colors">图表分析</a>
+                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-semibold text-blue-500 border-b-2 border-blue-500 transition-colors" data-i18n="tab.charts">图表分析</a>
                             <a href="#" data-tab="data-table"
-                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-medium text-gray-600 hover:text-gray-900 transition-colors">详细数据</a>
+                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-medium text-gray-600 hover:text-gray-900 transition-colors" data-i18n="tab.dataTable">详细数据</a>
                             <a href="#" data-tab="conclusion"
-                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-medium text-gray-600 hover:text-gray-900 transition-colors">智能结论</a>
+                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-medium text-gray-600 hover:text-gray-900 transition-colors" data-i18n="tab.conclusion">智能结论</a>
                             <a href="#" data-tab="scenarios"
-                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-medium text-gray-600 hover:text-gray-900 transition-colors">方案对比</a>
+                                class="tab-link pb-3 md:pb-5 px-1 md:px-3 text-lg md:text-xl font-medium text-gray-600 hover:text-gray-900 transition-colors" data-i18n="tab.scenarios">方案对比</a>
                         </nav>
                     </div>
                     <div class="p-4 md:p-8 bg-gray-50/30 flex-1 overflow-y-auto">
@@ -184,13 +190,13 @@
                             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8 h-auto md:h-[600px]">
                                 <div
                                     class="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-apple-sm flex flex-col h-[400px] md:h-auto">
-                                    <h4 class="text-lg md:text-lg font-semibold text-gray-700 mb-4">年度成本对比</h4>
+                                    <h4 id="chart-cost-title" class="text-lg md:text-lg font-semibold text-gray-700 mb-4">年度成本对比</h4>
                                     <div class="flex-1 relative w-full h-full overflow-hidden"><canvas
                                             id="costComparisonChart"></canvas></div>
                                 </div>
                                 <div
                                     class="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-apple-sm flex flex-col h-[400px] md:h-auto">
-                                    <h4 class="text-lg md:text-lg font-semibold text-gray-700 mb-4">LCC 成本构成</h4>
+                                    <h4 id="chart-lcc-title" class="text-lg md:text-lg font-semibold text-gray-700 mb-4">LCC 成本构成</h4>
                                     <div class="flex-1 relative w-full h-full overflow-hidden"><canvas
                                             id="lccBreakdownChart"></canvas></div>
                                 </div>
@@ -203,27 +209,26 @@
                                 <table class="min-w-full divide-y divide-gray-200" id="scenario-comparison-table">
                                     <thead class="bg-gray-100">
                                         <tr>
-                                            <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600">方案名称
+                                            <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600" data-i18n="table.scenarioName">方案名称
                                             </th>
-                                            <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600">投资(万)
+                                            <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600" data-i18n="table.investment">投资(万)
                                             </th>
-                                            <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600">LCC(万)
+                                            <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600" data-i18n="table.lccTotal">LCC(万)
                                             </th>
                                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600">IRR
                                             </th>
-                                            <th class="px-4 py-3"><span class="sr-only">操作</span></th>
+                                            <th class="px-4 py-3"><span class="sr-only" data-i18n="table.action">操作</span></th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-100 text-lg font-medium"></tbody>
                                 </table>
                             </div>
-                            <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 text-lg font-medium">
-                                暂无暂存方案</div>
+                            <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 text-lg font-medium" data-i18n="scenario.empty">暂无暂存方案</div>
                             <div class="mt-8 flex justify-end gap-4">
                                 <button id="undoClearBtn"
-                                    class="hidden text-base font-bold text-blue-600 hover:text-blue-800">撤销</button>
+                                    class="hidden text-base font-bold text-blue-600 hover:text-blue-800" data-i18n="button.undo">撤销</button>
                                 <button id="clearScenariosBtn"
-                                    class="hidden text-base font-bold text-red-600 hover:text-red-800">清空</button>
+                                    class="hidden text-base font-bold text-red-600 hover:text-red-800" data-i18n="button.clear">清空</button>
                             </div>
                         </div>
                     </div>
@@ -241,10 +246,10 @@
                     <p class="text-base text-gray-600" id="confirm-modal-message"></p>
                 </div>
                 <div class="items-center px-2 py-3 flex gap-3">
-                    <button id="confirm-modal-cancel-btn"
-                        class="flex-1 py-3 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">取消</button>
+                        <button id="confirm-modal-cancel-btn"
+                        class="flex-1 py-3 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors" data-i18n="button.cancel">取消</button>
                     <button id="confirm-modal-ok-btn"
-                        class="flex-1 py-3 bg-blue-500 text-white font-medium rounded-xl shadow-apple hover:bg-blue-600 transition-colors">确认</button>
+                        class="flex-1 py-3 bg-blue-500 text-white font-medium rounded-xl shadow-apple hover:bg-blue-600 transition-colors" data-i18n="button.confirm">确认</button>
                 </div>
             </div>
         </div>
@@ -255,7 +260,7 @@
         <div
             class="relative p-6 border border-gray-100 w-full max-w-2xl shadow-apple-lg rounded-2xl bg-white max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-4">
-                <h3 class="text-xl font-semibold text-gray-900">🔥 锅炉效率反推助手</h3>
+                <h3 class="text-xl font-semibold text-gray-900" data-i18n="effCalc.title">🔥 锅炉效率反推助手</h3>
                 <button id="eff-calc-close-btn"
                     class="text-gray-400 hover:text-gray-600 text-3xl font-medium">&times;</button>
             </div>
@@ -263,18 +268,18 @@
                 <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="col-span-2">
-                            <label class="block text-sm font-bold text-gray-500 mb-2">燃料类型</label>
+                            <label class="block text-sm font-bold text-gray-500 mb-2" data-i18n="effCalc.fuelType">燃料类型</label>
                             <select id="ec-fuel-type"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-lg appearance-none"
                                 disabled>
-                                <option value="gas">天然气</option>
-                                <option value="coal">燃煤</option>
-                                <option value="fuel">燃油</option>
-                                <option value="biomass">生物质</option>
+                                <option value="gas" data-i18n="common.fuelName.gas">天然气</option>
+                                <option value="coal" data-i18n="common.fuelName.coal">燃煤</option>
+                                <option value="fuel" data-i18n="common.fuelName.fuel">燃油</option>
+                                <option value="biomass" data-i18n="common.fuelName.biomass">生物质</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-500 mb-2">燃料消耗量</label>
+                            <label class="block text-sm font-bold text-gray-500 mb-2" data-i18n="effCalc.fuelAmount">燃料消耗量</label>
                             <input type="number" id="ec-fuel-amount"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl focus:ring-4 focus:ring-blue-500"
                                 placeholder="0">
@@ -289,47 +294,47 @@
                         <label class="inline-flex items-center cursor-pointer">
                             <input type="radio" name="ec-output-type" value="water" class="w-5 h-5 text-blue-600"
                                 checked>
-                            <span class="ml-2 text-lg font-bold text-gray-700">热水</span>
+                            <span class="ml-2 text-lg font-bold text-gray-700" data-i18n="effCalc.hotWater">热水</span>
                         </label>
                         <label class="inline-flex items-center cursor-pointer">
                             <input type="radio" name="ec-output-type" value="steam" class="w-5 h-5 text-blue-600">
-                            <span class="ml-2 text-lg font-bold text-gray-700">蒸汽</span>
+                            <span class="ml-2 text-lg font-bold text-gray-700" data-i18n="effCalc.steam">蒸汽</span>
                         </label>
                     </div>
                     <div id="ec-water-params" class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-bold text-gray-500 mb-1">产水量 (吨)</label><input
+                        <div><label class="block text-sm font-bold text-gray-500 mb-1" data-i18n="effCalc.waterMass">产水量 (吨)</label><input
                                 type="number" id="ec-water-mass"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl"></div>
                         <div></div>
-                        <div><label class="block text-sm font-bold text-gray-500 mb-1">进水温度 (℃)</label><input
+                        <div><label class="block text-sm font-bold text-gray-500 mb-1" data-i18n="effCalc.waterInTemp">进水温度 (℃)</label><input
                                 type="number" id="ec-water-in-temp" value="15"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl"></div>
-                        <div><label class="block text-sm font-bold text-gray-500 mb-1">出水温度 (℃)</label><input
+                        <div><label class="block text-sm font-bold text-gray-500 mb-1" data-i18n="effCalc.waterOutTemp">出水温度 (℃)</label><input
                                 type="number" id="ec-water-out-temp" value="60"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl"></div>
                     </div>
                     <div id="ec-steam-params" class="hidden grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-bold text-gray-500 mb-1">产汽量 (吨)</label><input
+                        <div><label class="block text-sm font-bold text-gray-500 mb-1" data-i18n="effCalc.steamMass">产汽量 (吨)</label><input
                                 type="number" id="ec-steam-mass"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl"></div>
-                        <div><label class="block text-sm font-bold text-gray-500 mb-1">蒸汽压力 (MPa)</label><input
+                        <div><label class="block text-sm font-bold text-gray-500 mb-1" data-i18n="effCalc.steamPressure">蒸汽压力 (MPa)</label><input
                                 type="number" id="ec-steam-pressure" value="0.8"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl"></div>
-                        <div><label class="block text-sm font-bold text-gray-500 mb-1">补水温度 (℃)</label><input
+                        <div><label class="block text-sm font-bold text-gray-500 mb-1" data-i18n="effCalc.feedTemp">补水温度 (℃)</label><input
                                 type="number" id="ec-steam-feed-temp" value="20"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg text-xl"></div>
                     </div>
                 </div>
                 <div class="text-center py-2">
-                    <p class="text-base text-gray-500 mb-1">计算效率结果</p>
+                    <p class="text-base text-gray-500 mb-1" data-i18n="effCalc.result">计算效率结果</p>
                     <p class="text-4xl font-black text-blue-600 tracking-tight" id="ec-result-display">-- %</p>
                 </div>
                 <div class="flex gap-4 pt-2">
                     <button id="ec-calc-btn"
-                        class="flex-1 bg-gray-100 text-gray-800 font-medium py-3 rounded-xl text-lg hover:bg-gray-200 transition-colors">开始计算</button>
+                        class="flex-1 bg-gray-100 text-gray-800 font-medium py-3 rounded-xl text-lg hover:bg-gray-200 transition-colors" data-i18n="button.calc">开始计算</button>
                     <button id="ec-apply-btn"
                         class="flex-1 bg-blue-500 text-white font-medium py-3 rounded-xl text-lg hover:bg-blue-600 transition-colors shadow-apple disabled:opacity-50"
-                        disabled>应用结果</button>
+                        disabled data-i18n="button.apply">应用结果</button>
                 </div>
             </div>
         </div>

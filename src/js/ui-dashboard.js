@@ -1,6 +1,8 @@
 // src/js/ui-dashboard.js
 // V18.3: Mobile Sidebar Logic & Responsive Interactions
 
+import { t } from './i18n.js';
+
 // --- 状态管理 ---
 const state = {
     activeTab: 'charts', // 默认激活 '图表分析'
@@ -208,10 +210,10 @@ export function showResultsPlaceholder() {
     if (placeholder) placeholder.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     
-    updateResultCard('annual-saving', '-- 万');
+    updateResultCard('annual-saving', `-- ${t('common.unit.tenThousand')}`);
     updateResultCard('irr', '-- %');
-    updateResultCard('pbp', '-- 年');
-    updateResultCard('co2-reduction', '-- 吨');
+    updateResultCard('pbp', `-- ${t('dataTable.year')}`);
+    updateResultCard('co2-reduction', `-- ${t('common.unit.ton')}`);
 }
 
 export function showResultsContent() {

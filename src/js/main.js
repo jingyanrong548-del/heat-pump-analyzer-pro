@@ -1,10 +1,24 @@
 // src/js/main.js
-// V19.16: Flexible Hybrid Mode (Any Energy Source)
+// V9.0.0: Internationalization Support
 
 import '../css/style.css'; 
 import { initializeUI, readAllInputs, renderDashboard } from './ui.js';
 import { showGlobalNotification } from './ui-dashboard.js';
-import { ENERGY_CONVERTERS } from './config.js'; 
+import { ENERGY_CONVERTERS } from './config.js';
+import { initI18n, setLanguage, t, getCurrentLanguage } from './i18n.js';
+
+// Import t function for use in calculateComparison
+const getComparisonName = (type) => {
+    const names = {
+        gas: t('common.comparison.gas'),
+        coal: t('common.comparison.coal'),
+        fuel: t('common.comparison.fuel'),
+        biomass: t('common.comparison.biomass'),
+        electric: t('common.comparison.electric'),
+        steam: t('common.comparison.steam')
+    };
+    return names[type] || type;
+}; 
 
 const KWH_PER_TON_STEAM = 697.8;
 
@@ -255,18 +269,18 @@ function calculateComparison(inputs, hpResult) {
             co2, lccTotal: lcc, annualSaving: annualSaving,
             savingRate: savingRate,     
             unitSteamCost: unitSteamCost, 
-            paybackPeriod: deltaI > 0 ? (deltaI / annualSaving).toFixed(1) + " 年" : "立即",
+            paybackPeriod: deltaI > 0 ? (deltaI / annualSaving).toFixed(1) + " " + t('dataTable.year') : t('dataTable.immediately'),
             dynamicPBP: dynamicPBP, 
             irr, lccSaving: lcc - hpResult.lcc.total, co2Reduction: co2 - hpResult.co2
         };
     };
 
-    if (inputs.compare.gas) comparisons.push(calcOne('天然气锅炉', inputs.gasBoilerCapex, inputs.gasBoilerEfficiency, inputs.gasPrice, inputs.gasCalorificObj, inputs.gasOpexCost, inputs.gasFactor, inputs.gasSalvageRate, 'm3'));
-    if (inputs.compare.coal) comparisons.push(calcOne('燃煤锅炉', inputs.coalBoilerCapex, inputs.coalBoilerEfficiency, inputs.coalPrice, inputs.coalCalorificObj, inputs.coalOpexCost, inputs.coalFactor, inputs.coalSalvageRate, 'ton'));
-    if (inputs.compare.fuel) comparisons.push(calcOne('燃油锅炉', inputs.fuelBoilerCapex, inputs.fuelBoilerEfficiency, inputs.fuelPrice, inputs.fuelCalorificObj, inputs.fuelOpexCost, inputs.fuelFactor, inputs.fuelSalvageRate, 'ton'));
-    if (inputs.compare.biomass) comparisons.push(calcOne('生物质锅炉', inputs.biomassBoilerCapex, inputs.biomassBoilerEfficiency, inputs.biomassPrice, inputs.biomassCalorificObj, inputs.biomassOpexCost, inputs.biomassFactor, inputs.biomassSalvageRate, 'ton'));
-    if (inputs.compare.electric) comparisons.push(calcOne('电锅炉', inputs.electricBoilerCapex, inputs.electricBoilerEfficiency, hpResult.avgElecPrice, 3.6, inputs.electricOpexCost, inputs.gridFactor, inputs.electricSalvageRate, 'kwh'));
-    if (inputs.compare.steam) comparisons.push(calcOne('管网蒸汽', inputs.steamCapex, inputs.steamEfficiency, inputs.steamPrice, inputs.steamCalorificObj, inputs.steamOpexCost, inputs.steamFactor, inputs.steamSalvageRate, 'ton'));
+    if (inputs.compare.gas) comparisons.push(calcOne(getComparisonName('gas'), inputs.gasBoilerCapex, inputs.gasBoilerEfficiency, inputs.gasPrice, inputs.gasCalorificObj, inputs.gasOpexCost, inputs.gasFactor, inputs.gasSalvageRate, 'm3'));
+    if (inputs.compare.coal) comparisons.push(calcOne(getComparisonName('coal'), inputs.coalBoilerCapex, inputs.coalBoilerEfficiency, inputs.coalPrice, inputs.coalCalorificObj, inputs.coalOpexCost, inputs.coalFactor, inputs.coalSalvageRate, 'ton'));
+    if (inputs.compare.fuel) comparisons.push(calcOne(getComparisonName('fuel'), inputs.fuelBoilerCapex, inputs.fuelBoilerEfficiency, inputs.fuelPrice, inputs.fuelCalorificObj, inputs.fuelOpexCost, inputs.fuelFactor, inputs.fuelSalvageRate, 'ton'));
+    if (inputs.compare.biomass) comparisons.push(calcOne(getComparisonName('biomass'), inputs.biomassBoilerCapex, inputs.biomassBoilerEfficiency, inputs.biomassPrice, inputs.biomassCalorificObj, inputs.biomassOpexCost, inputs.biomassFactor, inputs.biomassSalvageRate, 'ton'));
+    if (inputs.compare.electric) comparisons.push(calcOne(getComparisonName('electric'), inputs.electricBoilerCapex, inputs.electricBoilerEfficiency, hpResult.avgElecPrice, 3.6, inputs.electricOpexCost, inputs.gridFactor, inputs.electricSalvageRate, 'kwh'));
+    if (inputs.compare.steam) comparisons.push(calcOne(getComparisonName('steam'), inputs.steamCapex, inputs.steamEfficiency, inputs.steamPrice, inputs.steamCalorificObj, inputs.steamOpexCost, inputs.steamFactor, inputs.steamSalvageRate, 'ton'));
 
     return comparisons.filter(c => c !== null);
 }
@@ -295,8 +309,81 @@ function handleCalculate() {
     renderDashboard(results);
 }
 
+// Language switch handler
+let currentHandleCalculate = null;
+
+function updateUIForLanguage() {
+    if (currentHandleCalculate) {
+        initializeUI(currentHandleCalculate);
+        setTimeout(() => currentHandleCalculate(), 500);
+    }
+}
+
+function setupLanguageSwitch() {
+    const langBtn = document.getElementById('lang-switch-btn');
+    if (langBtn) {
+        langBtn.addEventListener('click', () => {
+            const currentLang = getCurrentLanguage();
+            const newLang = currentLang === 'zh' ? 'en' : 'zh';
+            setLanguage(newLang);
+            updateHTMLStaticText();
+            updateUIForLanguage();
+        });
+    }
+}
+
+function updateHTMLStaticText() {
+    // Update static HTML text elements
+    const elements = {
+        'page-title': 'page.title',
+        'sidebar-title': 'page.benefitAnalysis',
+        'sidebar-subtitle': 'page.subtitle',
+        'dashboard-title': 'page.dashboard',
+        'enable-comparison-label': 'button.enableComparison',
+        'calculate-btn-text': 'button.calculate',
+        'save-scenario-btn-text': 'button.saveScenario',
+        'mobile-config-btn-text': 'button.config',
+        'export-btn-text-short': 'button.export',
+        'export-btn-text-full': 'button.exportReport',
+        'card-annual-saving-label': 'card.annualSaving',
+        'card-irr-label': 'card.irr',
+        'card-pbp-label': 'card.pbp',
+        'card-co2-label': 'card.co2Reduction',
+        'placeholder-text': 'message.pleaseConfig',
+        'chart-cost-title': 'chart.annualCostComparison',
+        'chart-lcc-title': 'chart.lccBreakdown'
+    };
+    
+    Object.entries(elements).forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = t(key);
+        }
+    });
+    
+    // Update elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+            el.textContent = t(key);
+        }
+    });
+    
+    // Update select options with data-i18n attribute
+    document.querySelectorAll('option[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+            el.textContent = t(key);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Phoenix Plan V19.16 (Flexible Hybrid) Initializing...');
+    console.log('Heat Pump Analyzer V9.0.0 (i18n) Initializing...');
+    initI18n();
+    updateHTMLStaticText();
+    currentHandleCalculate = handleCalculate;
     initializeUI(handleCalculate);
+    setupLanguageSwitch();
     setTimeout(() => handleCalculate(), 500);
 });

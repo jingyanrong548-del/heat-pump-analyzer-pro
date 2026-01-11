@@ -1,11 +1,12 @@
 // src/js/ui.js
-// V19.21: Startup Prompts + Enhanced Empty State + All Logic
+// V9.0.0: Internationalization Support
 
 import { ENERGY_DEFAULTS, EFF_CALC_DEFAULTS } from './config.js'; 
 import { validateInput } from './ui-validator.js';
 import { calculateBoilerEfficiency, fWan, fYuan, fInt, fNum, fTon, fCop, fPercent, fYears } from './utils.js';
 import * as Dashboard from './ui-dashboard.js';
 import { createCostChart, createLccChart, destroyCharts } from './ui-chart.js';
+import { t, getCurrentLanguage } from './i18n.js';
 
 let latestResults = null;
 let savedScenarios = []; 
@@ -26,31 +27,31 @@ const GROUP_STYLE = "bg-white p-1 mb-4 md:mb-6";
 function generateProjectInputsHTML() {
     return `
         <div class="${GROUP_STYLE}">
-            <label class="${LABEL_STYLE}">项目名称</label>
-            <input type="text" id="projectName" ${defAttr("示例项目")} class="${INPUT_STYLE}">
+            <label class="${LABEL_STYLE}">${t('project.name')}</label>
+            <input type="text" id="projectName" ${defAttr(t('project.namePlaceholder'))} class="${INPUT_STYLE}">
         </div>
         <div class="pt-4 md:pt-6 border-t border-gray-200">
-            <label class="${LABEL_STYLE} mb-3 md:mb-4">负荷计算模式</label>
+            <label class="${LABEL_STYLE} mb-3 md:mb-4">${t('project.loadMode')}</label>
             <div class="grid grid-cols-3 gap-2 md:gap-3">
                 <label class="relative cursor-pointer group">
                     <input type="radio" name="calcMode" value="annual" class="peer sr-only" checked>
                     <div class="p-2 md:p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all text-center h-full flex flex-col justify-center shadow-apple-sm">
-                        <span class="text-sm md:text-base font-medium text-gray-800 peer-checked:text-blue-600">模式 A</span>
-                        <span class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">年时法</span>
+                        <span class="text-sm md:text-base font-medium text-gray-800 peer-checked:text-blue-600">${t('project.modeA')}</span>
+                        <span class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">${t('project.annualMethod')}</span>
                     </div>
                 </label>
                 <label class="relative cursor-pointer group">
                     <input type="radio" name="calcMode" value="total" class="peer sr-only">
                     <div class="p-2 md:p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all text-center h-full flex flex-col justify-center shadow-apple-sm">
-                        <span class="text-sm md:text-base font-medium text-gray-800 peer-checked:text-blue-600">模式 B</span>
-                        <span class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">总量法</span>
+                        <span class="text-sm md:text-base font-medium text-gray-800 peer-checked:text-blue-600">${t('project.modeB')}</span>
+                        <span class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">${t('project.totalMethod')}</span>
                     </div>
                 </label>
                 <label class="relative cursor-pointer group">
                     <input type="radio" name="calcMode" value="daily" class="peer sr-only">
                     <div class="p-2 md:p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all text-center h-full flex flex-col justify-center shadow-apple-sm">
-                        <span class="text-sm md:text-base font-medium text-gray-800 peer-checked:text-blue-600">模式 C</span>
-                        <span class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">间歇法</span>
+                        <span class="text-sm md:text-base font-medium text-gray-800 peer-checked:text-blue-600">${t('project.modeC')}</span>
+                        <span class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">${t('project.intermittentMethod')}</span>
                     </div>
                 </label>
             </div>
@@ -58,7 +59,7 @@ function generateProjectInputsHTML() {
         <div id="input-group-load" class="space-y-4 md:space-y-6 mt-4 md:mt-6">
             <div>
                 <div class="flex justify-between items-center mb-1 md:mb-2">
-                    <label class="${LABEL_STYLE} !mb-0">制热负荷 (设计值)</label>
+                    <label class="${LABEL_STYLE} !mb-0">${t('project.heatingLoad')}</label>
                     <select id="heatingLoadUnit" class="text-xs md:text-sm font-medium bg-blue-50 text-blue-600 border border-blue-200 rounded-lg px-2 py-1 cursor-pointer hover:bg-blue-100 transition"><option value="kW">kW</option><option value="kcal/h">kcal/h</option></select>
                 </div>
                 <input type="number" id="heatingLoad" ${defAttr("1000")} class="${INPUT_STYLE}" data-validation="isPositive">
@@ -66,36 +67,36 @@ function generateProjectInputsHTML() {
         </div>
         <div id="input-group-hours-a" class="space-y-4 md:space-y-6 mt-4 md:mt-6">
             <div>
-                <label class="${LABEL_STYLE}">年运行小时 (h)</label>
+                <label class="${LABEL_STYLE}">${t('project.operatingHours')}</label>
                 <input type="number" id="operatingHours" ${defAttr("2000")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
         </div>
         <div id="input-group-total" class="space-y-4 md:space-y-6 mt-4 md:mt-6 hidden">
             <div>
                 <div class="flex justify-between items-center mb-1 md:mb-2">
-                    <label class="${LABEL_STYLE} !mb-0">年总加热量</label>
+                    <label class="${LABEL_STYLE} !mb-0">${t('project.annualHeating')}</label>
                     <select id="annualHeatingUnit" class="text-xs md:text-sm font-medium bg-blue-50 text-blue-600 border border-blue-200 rounded-lg px-2 py-1 cursor-pointer"><option value="kWh">kWh</option><option value="GJ">GJ</option><option value="万大卡">万大卡</option></select>
                 </div>
                 <input type="number" id="annualHeating" ${defAttr("2000000")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
             <div>
-                <label class="${LABEL_STYLE}">年运行小时 (反推)</label>
+                <label class="${LABEL_STYLE}">${t('project.operatingHoursReverse')}</label>
                 <input type="number" id="operatingHours_B" ${defAttr("2000")} class="${INPUT_STYLE}" placeholder="自动计算">
             </div>
         </div>
         <div id="input-group-daily" class="space-y-4 md:space-y-6 mt-4 md:mt-6 hidden">
             <div class="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
-                    <label class="${LABEL_STYLE}">日运行 (h)</label>
+                    <label class="${LABEL_STYLE}">${t('project.dailyHours')}</label>
                     <input type="number" id="dailyHours" ${defAttr("8")} class="${INPUT_STYLE}">
                 </div>
                 <div>
-                    <label class="${LABEL_STYLE}">年天数 (d)</label>
+                    <label class="${LABEL_STYLE}">${t('project.annualDays')}</label>
                     <input type="number" id="annualDays" ${defAttr("300")} class="${INPUT_STYLE}">
                 </div>
             </div>
             <div>
-                <label class="${LABEL_STYLE}">平均负荷率 (%)</label>
+                <label class="${LABEL_STYLE}">${t('project.loadFactor')}</label>
                 <input type="number" id="loadFactor" ${defAttr("70")} class="${INPUT_STYLE}">
             </div>
         </div>
@@ -105,56 +106,56 @@ function generateProjectInputsHTML() {
 function generateSchemeInputsHTML() {
     return `
         <div class="mb-6">
-            <label class="${LABEL_STYLE} mb-3">系统模式 (System Mode)</label>
+            <label class="${LABEL_STYLE} mb-3">${t('scheme.systemMode')}</label>
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <label class="flex-1 relative cursor-pointer">
                     <input type="radio" name="systemMode" value="pure" class="peer sr-only" checked>
-                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-blue-500 peer-checked:shadow-apple-sm transition-all">1. 纯热泵</span>
+                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-blue-500 peer-checked:shadow-apple-sm transition-all">${t('scheme.pureHP')}</span>
                 </label>
                 <label class="flex-1 relative cursor-pointer">
                     <input type="radio" name="systemMode" value="hybrid" class="peer sr-only">
-                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-blue-500 peer-checked:shadow-apple-sm transition-all">2. 混合动力</span>
+                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-blue-500 peer-checked:shadow-apple-sm transition-all">${t('scheme.hybrid')}</span>
                 </label>
             </div>
         </div>
         <div class="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
             <div>
-                <label class="${LABEL_STYLE}">热泵投资 (万)</label>
+                <label class="${LABEL_STYLE}">${t('scheme.hpInvestment')}</label>
                 <input type="number" id="hpCapex" ${defAttr(ENERGY_DEFAULTS.hp.capex || "200")} class="${INPUT_STYLE}" data-validation="isPositive">
             </div>
             <div>
-                <label class="${LABEL_STYLE}">储能投资 (万)</label>
+                <label class="${LABEL_STYLE}">${t('scheme.storageInvestment')}</label>
                 <input type="number" id="storageCapex" ${defAttr("0")} class="${INPUT_STYLE}">
             </div>
         </div>
         <div id="hybrid-params" class="hidden mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl animate-fadeIn">
-             <h4 class="text-sm font-semibold text-orange-800 mb-4 flex items-center"><span class="mr-2">🔥</span>混合动力配置</h4>
+             <h4 class="text-sm font-semibold text-orange-800 mb-4 flex items-center"><span class="mr-2">🔥</span>${t('scheme.hybridConfig')}</h4>
              <div class="space-y-4">
                  <div>
-                    <label class="${LABEL_STYLE} text-orange-900">辅助热源类型</label>
+                    <label class="${LABEL_STYLE} text-orange-900">${t('scheme.auxHeaterType')}</label>
                     <select id="hybridAuxHeaterType" class="w-full px-3 py-2 border border-orange-200 rounded-xl text-base font-medium text-orange-900 focus:ring-2 focus:ring-orange-500 bg-white">
-                        <option value="electric">电加热 (Electric)</option>
-                        <option value="gas">天然气锅炉 (Gas)</option>
-                        <option value="coal">燃煤锅炉 (Coal)</option>
-                        <option value="fuel">燃油锅炉 (Fuel)</option>
-                        <option value="biomass">生物质锅炉 (Biomass)</option>
-                        <option value="steam">管网蒸汽 (Steam)</option>
+                        <option value="electric">${t('operating.electricAux')}</option>
+                        <option value="gas">${t('operating.gasBoiler')}</option>
+                        <option value="coal">${t('operating.coalBoiler')}</option>
+                        <option value="fuel">${t('operating.fuelBoiler')}</option>
+                        <option value="biomass">${t('operating.biomassBoiler')}</option>
+                        <option value="steam">${t('operating.steamNetwork')}</option>
                     </select>
                  </div>
                  <div>
                     <label class="${LABEL_STYLE} flex justify-between text-orange-900">
-                        <span>热泵承担负荷 (%)</span>
-                        <span class="text-xs text-orange-600 font-normal">剩余由辅热承担</span>
+                        <span>${t('scheme.hpLoadShare')}</span>
+                        <span class="text-xs text-orange-600 font-normal">${t('scheme.auxLoadNote')}</span>
                     </label>
                     <input type="number" id="hybridLoadShare" ${defAttr("50")} class="${INPUT_STYLE} border-orange-200 focus:border-orange-500 text-orange-900">
                  </div>
                  <div class="grid grid-cols-2 gap-3">
                      <div>
-                        <label class="${LABEL_STYLE} text-orange-900">辅热投资 (万)</label>
+                        <label class="${LABEL_STYLE} text-orange-900">${t('scheme.auxHeaterInvestment')}</label>
                         <input type="number" id="hybridAuxHeaterCapex" ${defAttr("30")} class="${INPUT_STYLE} border-orange-200 focus:border-orange-500 text-orange-900">
                      </div>
                      <div>
-                        <label class="${LABEL_STYLE} text-orange-900">辅热运维 (万)</label>
+                        <label class="${LABEL_STYLE} text-orange-900">${t('scheme.auxHeaterOpex')}</label>
                         <input type="number" id="hybridAuxHeaterOpex" ${defAttr("0.5")} class="${INPUT_STYLE} border-orange-200 focus:border-orange-500 text-orange-900">
                      </div>
                  </div>
@@ -162,22 +163,22 @@ function generateSchemeInputsHTML() {
         </div>
         <div class="pt-4 md:pt-6 border-t border-gray-200">
              <label class="block text-base font-semibold text-gray-800 mb-3 md:mb-4 flex items-center">
-                <span class="w-1.5 h-4 bg-blue-500 rounded-full mr-2"></span>对比基准配置
+                <span class="w-1.5 h-4 bg-blue-500 rounded-full mr-2"></span>${t('scheme.comparisonConfig')}
              </label>
              <div class="space-y-2 md:space-y-3">
                 ${[
-                    {k:'gas', n:'天然气'}, {k:'coal', n:'燃煤'}, {k:'electric', n:'电锅炉'}, 
-                    {k:'steam', n:'蒸汽'}, {k:'fuel', n:'燃油'}, {k:'biomass', n:'生物质'}
+                    {k:'gas', key:'gas'}, {k:'coal', key:'coal'}, {k:'electric', key:'electric'}, 
+                    {k:'steam', key:'steam'}, {k:'fuel', key:'fuel'}, {k:'biomass', key:'biomass'}
                 ].map(item => {
                     const defCapex = ENERGY_DEFAULTS[item.k].capex;
                     return `
                     <div class="flex items-center justify-between group related-to-${item.k} transition-all duration-200 p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200">
                         <div class="flex items-center">
                             <input type="checkbox" id="compare_${item.k}" data-target="${item.k}" class="comparison-toggle w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" checked>
-                            <label for="compare_${item.k}" class="ml-3 text-sm md:text-base font-medium text-gray-700 cursor-pointer select-none">${item.n}</label>
+                            <label for="compare_${item.k}" class="ml-3 text-sm md:text-base font-medium text-gray-700 cursor-pointer select-none">${t(`scheme.${item.key}`)}</label>
                         </div>
                         <div class="flex items-center gap-2 md:gap-3">
-                            <span class="text-xs text-gray-400 font-bold hidden md:inline">投资(万)</span>
+                            <span class="text-xs text-gray-400 font-bold hidden md:inline">${t('scheme.investment')}</span>
                             <div class="relative w-20 md:w-24">
                                 <input type="number" id="${item.k}BoilerCapex" ${defAttr(defCapex)} class="w-full px-2 py-1.5 border border-gray-200 rounded-xl text-sm md:text-base font-medium text-right focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all text-gray-700" placeholder="0">
                             </div>
@@ -195,84 +196,119 @@ function generateOperatingInputsHTML() {
     return `
         <div>
             <label class="${LABEL_STYLE} flex justify-between items-center">
-                <span>工业热泵 SPF (能效)</span>
-                <span class="text-blue-500 text-[10px] md:text-xs font-medium bg-blue-100 px-2 py-0.5 rounded-lg">关键指标</span>
+                <span>${t('operating.hpSPF')}</span>
+                <span class="text-blue-500 text-[10px] md:text-xs font-medium bg-blue-100 px-2 py-0.5 rounded-lg">${t('operating.keyIndicator')}</span>
             </label>
             <input type="number" id="hpCop" ${defAttr(ENERGY_DEFAULTS.hp.cop)} step="0.1" class="${INPUT_STYLE} !text-xl md:!text-2xl !text-blue-600" data-validation="isStrictlyPositive">
         </div>
         <div class="pt-4 md:pt-6 border-t border-dashed border-gray-200 space-y-4 md:space-y-6">
              <div>
                 <div class="flex justify-between items-center mb-2 md:mb-4">
-                    <label class="${LABEL_STYLE} !mb-0">电价配置 (元/kWh)</label>
-                    <button type="button" id="addPriceTierBtn" class="text-[10px] md:text-xs font-medium text-blue-500 bg-white border border-blue-200 hover:bg-blue-50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition">+ 添加</button>
+                    <label class="${LABEL_STYLE} !mb-0">${t('operating.priceConfig')}</label>
+                    <button type="button" id="addPriceTierBtn" class="text-[10px] md:text-xs font-medium text-blue-500 bg-white border border-blue-200 hover:bg-blue-50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition">+ ${t('button.add')}</button>
                 </div>
                 <div id="priceTiersContainer" class="space-y-2 md:space-y-3 mb-2 md:mb-4"></div>
                 <input type="hidden" id="simple_avg_price" value="${ENERGY_DEFAULTS.electric.price}" class="track-change"> 
                 <label class="flex items-center cursor-pointer p-2 md:p-3 bg-green-50/50 border border-green-200 rounded-xl hover:border-green-300 transition">
                     <input type="checkbox" id="greenPowerToggle" class="w-4 h-4 md:w-5 md:h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 track-change">
-                    <span class="ml-2 md:ml-3 text-sm md:text-base font-medium text-green-800">启用绿电 (零碳模式)</span>
+                    <span class="ml-2 md:ml-3 text-sm md:text-base font-medium text-green-800">${t('operating.greenPower')}</span>
                 </label>
              </div>
              <div class="grid grid-cols-2 gap-3 md:gap-4">
-                 <div class="related-to-gas"><label class="${LABEL_STYLE}">气价 (元/m³)</label><input type="number" id="gasPrice" ${defAttr(ENERGY_DEFAULTS.gas.price)} class="${INPUT_STYLE}"></div>
-                 <div class="related-to-coal"><label class="${LABEL_STYLE}">煤价 (元/t)</label><input type="number" id="coalPrice" ${defAttr(ENERGY_DEFAULTS.coal.price)} class="${INPUT_STYLE}"></div>
-                 <div class="related-to-steam"><label class="${LABEL_STYLE}">汽价 (元/t)</label><input type="number" id="steamPrice" ${defAttr(ENERGY_DEFAULTS.steam.price)} class="${INPUT_STYLE}"></div>
-                 <div class="related-to-fuel"><label class="${LABEL_STYLE}">油价 (元/t)</label><input type="number" id="fuelPrice" ${defAttr(ENERGY_DEFAULTS.fuel.price)} class="${INPUT_STYLE}"></div>
-                 <div class="related-to-biomass"><label class="${LABEL_STYLE}">生物质 (元/t)</label><input type="number" id="biomassPrice" ${defAttr(ENERGY_DEFAULTS.biomass.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-gas"><label class="${LABEL_STYLE}">${t('operating.gasPrice')}</label><input type="number" id="gasPrice" ${defAttr(ENERGY_DEFAULTS.gas.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-coal"><label class="${LABEL_STYLE}">${t('operating.coalPrice')}</label><input type="number" id="coalPrice" ${defAttr(ENERGY_DEFAULTS.coal.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-steam"><label class="${LABEL_STYLE}">${t('operating.steamPrice')}</label><input type="number" id="steamPrice" ${defAttr(ENERGY_DEFAULTS.steam.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-fuel"><label class="${LABEL_STYLE}">${t('operating.fuelPrice')}</label><input type="number" id="fuelPrice" ${defAttr(ENERGY_DEFAULTS.fuel.price)} class="${INPUT_STYLE}"></div>
+                 <div class="related-to-biomass"><label class="${LABEL_STYLE}">${t('operating.biomassPrice')}</label><input type="number" id="biomassPrice" ${defAttr(ENERGY_DEFAULTS.biomass.price)} class="${INPUT_STYLE}"></div>
              </div>
         </div>
         <div class="pt-4 md:pt-6 border-t border-dashed border-gray-200">
-            <label class="${LABEL_STYLE} mb-2 md:mb-4">锅炉效率 (%)</label>
+            <label class="${LABEL_STYLE} mb-2 md:mb-4">${t('operating.boilerEfficiency')}</label>
             <div class="space-y-2 md:space-y-3">
                 ${[
-                    {id:'gas', label:'天然气', val:ENERGY_DEFAULTS.gas.boilerEff, hasBtn:true}, 
-                    {id:'coal', label:'燃煤', val:ENERGY_DEFAULTS.coal.boilerEff, hasBtn:true}, 
-                    {id:'electric', label:'电锅炉', val:ENERGY_DEFAULTS.electric.boilerEff, hasBtn:false}, 
-                    {id:'steam', label:'管道蒸汽', val:ENERGY_DEFAULTS.steam.boilerEff, hasBtn:false}, 
-                    {id:'fuel', label:'燃油', val:ENERGY_DEFAULTS.fuel.boilerEff, hasBtn:true}, 
-                    {id:'biomass', label:'生物质', val:ENERGY_DEFAULTS.biomass.boilerEff, hasBtn:true}
-                ].map(item => `
+                    {id:'gas', key:'gas'}, 
+                    {id:'coal', key:'coal'}, 
+                    {id:'electric', key:'electric'}, 
+                    {id:'steam', key:'pipeSteam'}, 
+                    {id:'fuel', key:'fuel'}, 
+                    {id:'biomass', key:'biomass'}
+                ].map(item => {
+                    const labelMap = {
+                        gas: t('scheme.gas'),
+                        coal: t('scheme.coal'),
+                        electric: t('scheme.electric'),
+                        pipeSteam: t('operating.pipeSteam'),
+                        fuel: t('scheme.fuel'),
+                        biomass: t('scheme.biomass')
+                    };
+                    const valMap = {
+                        gas: ENERGY_DEFAULTS.gas.boilerEff,
+                        coal: ENERGY_DEFAULTS.coal.boilerEff,
+                        electric: ENERGY_DEFAULTS.electric.boilerEff,
+                        pipeSteam: ENERGY_DEFAULTS.steam.boilerEff,
+                        fuel: ENERGY_DEFAULTS.fuel.boilerEff,
+                        biomass: ENERGY_DEFAULTS.biomass.boilerEff
+                    };
+                    const hasBtnMap = {
+                        gas: true,
+                        coal: true,
+                        electric: false,
+                        pipeSteam: false,
+                        fuel: true,
+                        biomass: true
+                    };
+                    const val = valMap[item.key] || valMap[item.id];
+                    const hasBtn = hasBtnMap[item.key] !== undefined ? hasBtnMap[item.key] : hasBtnMap[item.id];
+                    const label = labelMap[item.key] || labelMap[item.id];
+                    return `
                     <div class="flex items-center gap-2 related-to-${item.id}">
-                        <span class="text-sm md:text-base font-bold text-gray-600 w-16 md:w-24 shrink-0 text-right pr-2">${item.label}</span>
+                        <span class="text-sm md:text-base font-bold text-gray-600 w-16 md:w-24 shrink-0 text-right pr-2">${label}</span>
                         <div class="flex-1 flex items-center gap-2 min-w-0">
-                            <input type="number" id="${item.id}BoilerEfficiency" ${defAttr(item.val)} class="flex-1 px-2 md:px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-base md:text-lg font-medium text-gray-800 focus:bg-white focus:border-blue-500 transition-all text-center h-9 md:h-10 min-w-0">
-                            ${item.hasBtn ? `<button type="button" class="eff-calc-btn shrink-0 text-blue-500 bg-blue-50 hover:bg-blue-100 text-[10px] md:text-xs font-medium px-2 md:px-3 py-2 rounded-lg border border-blue-100 transition-colors whitespace-nowrap" data-target="${item.id}BoilerEfficiency" data-fuel="${item.id}">反推</button>` : ''}
+                            <input type="number" id="${item.id}BoilerEfficiency" ${defAttr(val)} class="flex-1 px-2 md:px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-base md:text-lg font-medium text-gray-800 focus:bg-white focus:border-blue-500 transition-all text-center h-9 md:h-10 min-w-0">
+                            ${hasBtn ? `<button type="button" class="eff-calc-btn shrink-0 text-blue-500 bg-blue-50 hover:bg-blue-100 text-[10px] md:text-xs font-medium px-2 md:px-3 py-2 rounded-lg border border-blue-100 transition-colors whitespace-nowrap" data-target="${item.id}BoilerEfficiency" data-fuel="${item.id}">${t('operating.reverseCalc')}</button>` : ''}
                         </div>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
         </div>
         <div class="mt-4 md:mt-6 pt-4 border-t border-dashed border-gray-200">
             <details class="group">
                 <summary class="flex justify-between items-center font-medium cursor-pointer list-none text-gray-600 hover:text-blue-500 transition-colors text-sm md:text-base select-none py-2 bg-gray-50 rounded-xl px-3">
-                    <span>⚙️ 高级能源参数 (单位换算)</span>
+                    <span>⚙️ ${t('operating.advancedParams')}</span>
                     <span class="transition group-open:rotate-180"><svg fill="none" height="20" width="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></span>
                 </summary>
                 <div class="text-gray-500 mt-3 grid grid-cols-1 gap-3 animate-fadeIn">
                     <div class="bg-gray-50 p-2 md:p-3 rounded-lg flex justify-between items-center border border-gray-200">
-                        <span class="text-xs md:text-sm font-medium text-gray-700">电 (Electric)</span>
-                        <div class="flex items-center"><span class="text-[10px] md:text-xs mr-2 font-bold">排放</span><input id="gridFactor" type="number" ${defAttr(ENERGY_DEFAULTS.electric.factor)} class="w-16 md:w-20 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-xs md:text-sm"><span class="ml-1 md:ml-2 text-[10px] md:text-xs font-bold">kg/kWh</span></div>
+                        <span class="text-xs md:text-sm font-medium text-gray-700">${t('operating.electricAux').replace(' (Electric)', '')} (Electric)</span>
+                        <div class="flex items-center"><span class="text-[10px] md:text-xs mr-2 font-bold">${t('operating.emission')}</span><input id="gridFactor" type="number" ${defAttr(ENERGY_DEFAULTS.electric.factor)} class="w-16 md:w-20 p-1 border border-gray-300 rounded text-right font-bold text-gray-900 text-xs md:text-sm"><span class="ml-1 md:ml-2 text-[10px] md:text-xs font-bold">kg/kWh</span></div>
                     </div>
-                    ${['gas|气|m³', 'coal|煤|kg', 'fuel|油|kg', 'biomass|生物|kg', 'steam|蒸汽|kg'].map(item => {
-                        const [k, n, u] = item.split('|');
+                    ${[
+                        {k:'gas', labelKey:'gas', u:'m³'}, 
+                        {k:'coal', labelKey:'coal', u:'kg'}, 
+                        {k:'fuel', labelKey:'fuel', u:'kg'}, 
+                        {k:'biomass', labelKey:'biomass', u:'kg'}, 
+                        {k:'steam', labelKey:'steam', u:'kg'}
+                    ].map(item => {
+                        const n = t(`common.fuelShort.${item.k}`);
                         return `
-                        <div class="bg-gray-50 p-2 md:p-3 rounded-lg flex justify-between items-center border border-gray-200 related-to-${k}">
+                        <div class="bg-gray-50 p-2 md:p-3 rounded-lg flex justify-between items-center border border-gray-200 related-to-${item.k}">
                             <span class="text-xs md:text-sm font-medium text-gray-700">${n}</span>
                             <div class="flex items-center gap-1 md:gap-2">
                                 <div class="flex items-center">
-                                    <span class="text-[10px] md:text-xs mr-1 font-bold">热值</span>
-                                    <input id="${k}Calorific" type="number" ${defAttr(ENERGY_DEFAULTS[k].calorific)} class="w-12 md:w-16 p-1 border border-gray-300 rounded-lg text-right font-medium text-gray-900 text-[10px] md:text-sm">
-                                    <select id="${k}CalorificUnit" class="ml-0.5 md:ml-1 p-1 border border-gray-300 rounded-lg bg-white text-[10px] md:text-xs font-medium w-12 md:w-16 track-change unit-converter" data-target-input="${k}Calorific">
+                                    <span class="text-[10px] md:text-xs mr-1 font-bold">${t('operating.calorific')}</span>
+                                    <input id="${item.k}Calorific" type="number" ${defAttr(ENERGY_DEFAULTS[item.k].calorific)} class="w-12 md:w-16 p-1 border border-gray-300 rounded-lg text-right font-medium text-gray-900 text-[10px] md:text-sm">
+                                    <select id="${item.k}CalorificUnit" class="ml-0.5 md:ml-1 p-1 border border-gray-300 rounded-lg bg-white text-[10px] md:text-xs font-medium w-12 md:w-16 track-change unit-converter" data-target-input="${item.k}Calorific">
                                         <option value="MJ" selected>MJ</option>
                                         <option value="kcal">kcal</option>
                                         <option value="kWh">kWh</option>
                                     </select>
-                                    <span class="text-xs font-medium text-gray-500 ml-1">/${u}</span>
+                                    <span class="text-xs font-medium text-gray-500 ml-1">/${item.u}</span>
                                 </div>
                                 <div class="flex items-center">
-                                    <span class="text-[10px] md:text-xs mr-1 font-medium hidden lg:inline">排放</span>
-                                    <input id="${k}Factor" type="number" ${defAttr(ENERGY_DEFAULTS[k].factor)} class="w-12 md:w-16 p-1 border border-gray-300 rounded-lg text-right font-medium text-gray-900 text-[10px] md:text-sm">
-                                    <span class="text-[10px] md:text-xs font-medium text-gray-500 ml-0.5">kg/${u}</span>
+                                    <span class="text-[10px] md:text-xs mr-1 font-medium hidden lg:inline">${t('operating.emission')}</span>
+                                    <input id="${item.k}Factor" type="number" ${defAttr(ENERGY_DEFAULTS[item.k].factor)} class="w-12 md:w-16 p-1 border border-gray-300 rounded-lg text-right font-medium text-gray-900 text-[10px] md:text-sm">
+                                    <span class="text-[10px] md:text-xs font-medium text-gray-500 ml-0.5">kg/${item.u}</span>
                                 </div>
                             </div>
                         </div>`;
@@ -281,22 +317,45 @@ function generateOperatingInputsHTML() {
             </details>
         </div>
         <div class="pt-4 md:pt-6 border-t border-dashed border-gray-200">
-            <label class="${LABEL_STYLE} mb-3 md:mb-4">运维成本 (万/年)</label>
+            <label class="${LABEL_STYLE} mb-3 md:mb-4">${t('operating.opex')}</label>
             <div class="space-y-3 md:space-y-4">
                 <div class="flex items-center justify-between">
-                    <span class="text-sm md:text-base font-medium text-blue-600 w-20 md:w-24">工业热泵</span>
+                    <span class="text-sm md:text-base font-medium text-blue-600 w-20 md:w-24">${t('operating.hpOpex')}</span>
                     <input type="number" id="hpOpexCost" ${defAttr(ENERGY_DEFAULTS.hp.opex)} class="flex-1 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-base md:text-lg font-medium text-blue-700 text-center h-10 md:h-12 shadow-apple-sm">
                 </div>
                 ${[
-                    {id:'gas', label:'天然气', val:ENERGY_DEFAULTS.gas.opex}, {id:'coal', label:'燃煤', val:ENERGY_DEFAULTS.coal.opex},
-                    {id:'electric', label:'电锅炉', val:ENERGY_DEFAULTS.electric.opex}, {id:'steam', label:'蒸汽', val:ENERGY_DEFAULTS.steam.opex},
-                    {id:'fuel', label:'燃油', val:ENERGY_DEFAULTS.fuel.opex}, {id:'biomass', label:'生物质', val:ENERGY_DEFAULTS.biomass.opex}
-                ].map(item => `
+                    {id:'gas', key:'gas'}, 
+                    {id:'coal', key:'coal'},
+                    {id:'electric', key:'electric'}, 
+                    {id:'steam', key:'steam'},
+                    {id:'fuel', key:'fuel'}, 
+                    {id:'biomass', key:'biomass'}
+                ].map(item => {
+                    const labelMap = {
+                        gas: t('scheme.gas'),
+                        coal: t('scheme.coal'),
+                        electric: t('scheme.electric'),
+                        steam: t('scheme.steam'),
+                        fuel: t('scheme.fuel'),
+                        biomass: t('scheme.biomass')
+                    };
+                    const valMap = {
+                        gas: ENERGY_DEFAULTS.gas.opex,
+                        coal: ENERGY_DEFAULTS.coal.opex,
+                        electric: ENERGY_DEFAULTS.electric.opex,
+                        steam: ENERGY_DEFAULTS.steam.opex,
+                        fuel: ENERGY_DEFAULTS.fuel.opex,
+                        biomass: ENERGY_DEFAULTS.biomass.opex
+                    };
+                    const label = labelMap[item.key] || labelMap[item.id];
+                    const val = valMap[item.key] || valMap[item.id];
+                    return `
                     <div class="flex items-center justify-between related-to-${item.id}">
-                        <span class="text-sm md:text-base font-medium text-gray-600 w-20 md:w-24">${item.label}</span>
-                        <input type="number" id="${item.id}OpexCost" ${defAttr(item.val)} class="flex-1 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-base md:text-lg font-medium text-gray-700 text-center h-10 md:h-12">
+                        <span class="text-sm md:text-base font-medium text-gray-600 w-20 md:w-24">${label}</span>
+                        <input type="number" id="${item.id}OpexCost" ${defAttr(val)} class="flex-1 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-base md:text-lg font-medium text-gray-700 text-center h-10 md:h-12">
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
         </div>
     `;
@@ -305,47 +364,47 @@ function generateOperatingInputsHTML() {
 function generateFinancialInputsHTML() {
     return `
         <div class="mb-6">
-            <label class="${LABEL_STYLE} mb-3">投资模式 (Business Model)</label>
+            <label class="${LABEL_STYLE} mb-3">${t('financial.businessModel')}</label>
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <label class="flex-1 relative cursor-pointer">
                     <input type="radio" name="financeMode" value="self" class="peer sr-only" checked>
-                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-purple-600 peer-checked:shadow-apple-sm transition-all">1. 业主自投</span>
+                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-purple-600 peer-checked:shadow-apple-sm transition-all">${t('financial.selfInvest')}</span>
                 </label>
                 <label class="flex-1 relative cursor-pointer">
                     <input type="radio" name="financeMode" value="bot" class="peer sr-only">
-                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-purple-600 peer-checked:shadow-apple-sm transition-all">2. 能源托管/BOT</span>
+                    <span class="block text-center py-2 rounded-lg text-sm font-medium text-gray-600 peer-checked:bg-white peer-checked:text-purple-600 peer-checked:shadow-apple-sm transition-all">${t('financial.bot')}</span>
                 </label>
             </div>
         </div>
         <div class="space-y-4 md:space-y-6">
             <div>
-                <label class="${LABEL_STYLE}">分析年限 (年)</label>
+                <label class="${LABEL_STYLE}">${t('financial.analysisYears')}</label>
                 <input type="number" id="lccYears" ${defAttr("15")} class="${INPUT_STYLE}">
             </div>
             <div>
-                <label class="${LABEL_STYLE}">折现率 (%)</label>
+                <label class="${LABEL_STYLE}">${t('financial.discountRate')}</label>
                 <input type="number" id="discountRate" ${defAttr("8")} class="${INPUT_STYLE}">
             </div>
             <div id="bot-params" class="hidden p-4 bg-purple-50 border border-purple-100 rounded-xl space-y-4 animate-fadeIn">
-                <h4 class="text-sm font-semibold text-purple-800 mb-2 flex items-center"><span class="mr-2">💰</span>BOT 参数设置</h4>
-                <div><label class="${LABEL_STYLE}">年服务费收入 (万)</label><input type="number" id="botAnnualRevenue" ${defAttr("150")} class="${INPUT_STYLE} border-purple-200 focus:border-purple-500 text-purple-900"></div>
-                <div><label class="${LABEL_STYLE}">自有资金比例 (%)</label><input type="number" id="botEquityRatio" ${defAttr("30")} class="${INPUT_STYLE} border-purple-200 focus:border-purple-500 text-purple-900"></div>
+                <h4 class="text-sm font-semibold text-purple-800 mb-2 flex items-center"><span class="mr-2">💰</span>${t('financial.botParams')}</h4>
+                <div><label class="${LABEL_STYLE}">${t('financial.annualRevenue')}</label><input type="number" id="botAnnualRevenue" ${defAttr("150")} class="${INPUT_STYLE} border-purple-200 focus:border-purple-500 text-purple-900"></div>
+                <div><label class="${LABEL_STYLE}">${t('financial.equityRatio')}</label><input type="number" id="botEquityRatio" ${defAttr("30")} class="${INPUT_STYLE} border-purple-200 focus:border-purple-500 text-purple-900"></div>
             </div>
             <div class="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
-                    <label class="${LABEL_STYLE}">能源涨幅(%)</label>
+                    <label class="${LABEL_STYLE}">${t('financial.energyInflation')}</label>
                     <input type="number" id="energyInflationRate" ${defAttr("3")} class="${INPUT_STYLE}">
                 </div>
                 <div>
-                    <label class="${LABEL_STYLE}">运维涨幅(%)</label>
+                    <label class="${LABEL_STYLE}">${t('financial.opexInflation')}</label>
                     <input type="number" id="opexInflationRate" ${defAttr("5")} class="${INPUT_STYLE}">
                 </div>
             </div>
         </div>
         <div class="mt-8 pt-4 border-t border-gray-200 text-center pb-24">
-            <p class="text-sm font-medium text-gray-700">创作：荆炎荣</p>
-            <p id="usage-counter" class="text-xs text-blue-500 font-medium mt-1">累计运行：0 次</p>
-            <p class="text-[10px] text-gray-400 mt-2 leading-tight px-4">免责声明：本工具计算结果仅供参考，不作为最终投资决策依据。具体参数请咨询专业设计院。</p>
+            <p class="text-sm font-medium text-gray-700">${t('financial.author')}</p>
+            <p id="usage-counter" class="text-xs text-blue-500 font-medium mt-1">${t('financial.usageCounter', {count: 0})}</p>
+            <p class="text-[10px] text-gray-400 mt-2 leading-tight px-4">${t('financial.disclaimer')}</p>
         </div>
     `;
 }
@@ -355,10 +414,10 @@ function generateFinancialInputsHTML() {
 // ==========================================
 
 export function initializeUI(handleCalculate) {
-    injectAccordionContent('accordion-project', '1. 项目与负荷', generateProjectInputsHTML());
-    injectAccordionContent('accordion-scheme', '2. 方案与投资', generateSchemeInputsHTML());
-    injectAccordionContent('accordion-operating', '3. 运行参数', generateOperatingInputsHTML());
-    injectAccordionContent('accordion-financial', '4. 财务模型', generateFinancialInputsHTML());
+    injectAccordionContent('accordion-project', t('accordion.project'), generateProjectInputsHTML());
+    injectAccordionContent('accordion-scheme', t('accordion.scheme'), generateSchemeInputsHTML());
+    injectAccordionContent('accordion-operating', t('accordion.operating'), generateOperatingInputsHTML());
+    injectAccordionContent('accordion-financial', t('accordion.financial'), generateFinancialInputsHTML());
 
     Dashboard.initializeDashboard();
     setupInputMonitoring(); 
@@ -367,12 +426,6 @@ export function initializeUI(handleCalculate) {
     setupModeToggles(); 
     setupScenarioLogic(); 
 
-    // [新增] 启动时的欢迎提示 (Toast)
-    setTimeout(() => {
-        if(Dashboard.showGlobalNotification) {
-            Dashboard.showGlobalNotification('👋 欢迎使用！请在左侧配置参数，然后点击“运行计算”开启分析。', 'info', 4000);
-        }
-    }, 800);
 
     // [新增] 优化右侧空白页的提示语 (Empty State)
     const placeholder = document.getElementById('report-placeholder');
@@ -380,8 +433,8 @@ export function initializeUI(handleCalculate) {
         placeholder.innerHTML = `
             <div class="flex flex-col items-center justify-center p-10 opacity-60">
                 <svg class="w-24 h-24 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-4a2 2 0 012-2h2a2 2 0 012 2v4M9 17h6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                <h3 class="text-2xl font-bold text-gray-400 mb-2">暂无分析数据</h3>
-                <p class="text-gray-400">请在左侧侧边栏输入项目参数，<br>并点击 <span class="font-bold text-blue-500">“运行计算”</span> 按钮。</p>
+                <h3 class="text-2xl font-bold text-gray-400 mb-2">${t('message.noData')}</h3>
+                <p class="text-gray-400">${t('message.noDataPrompt')}</p>
             </div>
         `;
     }
@@ -441,26 +494,26 @@ function setupScenarioLogic() {
                  <table class="min-w-full divide-y divide-gray-200" id="scenario-comparison-table">
                      <thead class="bg-gray-100">
                          <tr>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">方案名称</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">折算吨汽成本</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">综合节能率</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">投资(万)</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">年总成本(万)</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">年节省(万)</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">动态回收期</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.scenarioName')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.unitSteamCost')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.savingRate')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.investment')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.annualTotalCost')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.annualSaving')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.dynamicPayback')}</th>
                              <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">IRR</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">LCC(万)</th>
-                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">碳减排(吨)</th>
-                             <th class="px-4 py-3"><span class="sr-only">操作</span></th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.lccTotal')}</th>
+                             <th class="px-4 py-3 text-left text-sm font-extrabold text-gray-600 whitespace-nowrap">${t('table.co2Reduction')}</th>
+                             <th class="px-4 py-3"><span class="sr-only">${t('table.action')}</span></th>
                          </tr>
                      </thead>
                      <tbody class="bg-white divide-y divide-gray-100 text-lg font-medium"></tbody>
                  </table>
              </div>
-             <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 text-lg font-medium">暂无暂存方案</div>
+             <div id="scenario-empty-msg" class="text-center text-gray-400 py-10 text-lg font-medium">${t('scenario.empty')}</div>
              <div class="mt-8 flex justify-end gap-4">
-                 <button id="undoClearBtn" class="hidden text-base font-bold text-blue-600 hover:text-blue-800">撤销</button>
-                 <button id="clearScenariosBtn" class="hidden text-base font-bold text-red-600 hover:text-red-800">清空</button>
+                 <button id="undoClearBtn" class="hidden text-base font-bold text-blue-600 hover:text-blue-800">${t('button.undo')}</button>
+                 <button id="clearScenariosBtn" class="hidden text-base font-bold text-red-600 hover:text-red-800">${t('button.clear')}</button>
              </div>
         `;
         tableWrapper = document.getElementById('scenario-table-wrapper');
@@ -475,20 +528,20 @@ function setupScenarioLogic() {
         
         newBtn.addEventListener('click', () => {
             if (!latestResults) {
-                alert("请先运行计算，再暂存方案。");
+                alert(t('message.pleaseCalculateFirst'));
                 return;
             }
             
-            let modeName = "热泵";
-            if (latestResults.inputs.isHybridMode) modeName = "混合";
-            if (latestResults.inputs.isBOTMode) modeName += "(BOT)";
+            let modeName = t('scenario.modePure');
+            if (latestResults.inputs.isHybridMode) modeName = t('scenario.modeHybrid');
+            if (latestResults.inputs.isBOTMode) modeName += t('scenario.modeBOT');
             
             const bestComp = latestResults.comparisons.sort((a, b) => b.annualSaving - a.annualSaving)[0];
             
             // 抓取全量数据快照
             const snapshot = {
                 id: Date.now(),
-                name: `方案${savedScenarios.length + 1}：${latestResults.inputs.projectName} [${modeName}]`,
+                name: `${t('scenario.scenario')}${savedScenarios.length + 1}：${latestResults.inputs.projectName} [${modeName}]`,
                 unitSteamCost: latestResults.hp.unitSteamCost,
                 savingRate: bestComp ? bestComp.savingRate : 0,
                 invest: latestResults.hp.initialInvestment,
@@ -505,7 +558,7 @@ function setupScenarioLogic() {
             Dashboard.switchTab('scenarios');
             
             if(Dashboard.showGlobalNotification) {
-                Dashboard.showGlobalNotification('方案已暂存', 'success');
+                Dashboard.showGlobalNotification(t('scenario.saved'), 'success');
             }
         });
     }
@@ -516,7 +569,7 @@ function setupScenarioLogic() {
         scenariosTab.onclick = (e) => {
             if (e.target.id === 'clearScenariosBtn') {
                 if (savedScenarios.length === 0) return;
-                if (confirm('确定要清空所有暂存方案吗？')) {
+                if (confirm(t('scenario.clearConfirm'))) {
                     deletedScenariosBackup = [...savedScenarios];
                     savedScenarios = [];
                     updateScenarioTable();
@@ -627,7 +680,7 @@ function incrementUsageCounter() {
 function updateUsageDisplay(count = null) {
     if (count === null) count = parseInt(localStorage.getItem('heat_pump_usage_count') || '0');
     const el = document.querySelectorAll('#usage-counter');
-    el.forEach(e => e.textContent = `累计运行：${count} 次`);
+    el.forEach(e => e.textContent = t('financial.usageCounter', {count: count}));
 }
 
 function setupUnitAutoConverters() {
@@ -683,7 +736,7 @@ function addNewPriceTier(name = "", price = "", dist = "") {
         <button type="button" class="text-red-500 hover:text-red-700 px-2 text-xl font-bold remove-tier-btn transition">×</button>
     `;
     div.querySelector('.remove-tier-btn').addEventListener('click', () => {
-        if (container.children.length > 1) { div.remove(); document.getElementById('calculateBtn')?.click(); } else { alert("至少保留一个电价时段"); }
+        if (container.children.length > 1) { div.remove(); document.getElementById('calculateBtn')?.click(); } else { alert(t('message.keepOneTier')); }
     });
     div.querySelectorAll('input').forEach(input => {
         input.addEventListener('change', () => document.getElementById('calculateBtn')?.click());
@@ -737,11 +790,11 @@ function setupSimpleUnitConverter(selectId, inputId, factors) {
     sel.addEventListener('change', () => {});
 }
 
-function resetParams() { if(confirm('确定要恢复默认参数吗？')) location.reload(); }
+function resetParams() { if(confirm(t('message.resetConfirm'))) location.reload(); }
 
 function setupExportButton() {
     const btn = document.getElementById('export-report-btn');
-    if (btn) btn.addEventListener('click', () => { if (!latestResults) { alert("请先进行计算"); return; } buildPrintReport(latestResults); setTimeout(() => { window.print(); }, 500); });
+    if (btn) btn.addEventListener('click', () => { if (!latestResults) { alert(t('message.pleaseCalculate')); return; } buildPrintReport(latestResults); setTimeout(() => { window.print(); }, 500); });
 }
 
 // 核心功能：数据读取
@@ -829,20 +882,20 @@ export function renderDashboard(results) {
     const kpiClass = "text-2xl sm:text-3xl md:text-4xl xl:text-5xl font-semibold text-gray-900 mt-2 md:mt-3 tracking-tight truncate";
 
     if (bestComp) {
-        Dashboard.updateResultCard('annual-saving', `${fWan(bestComp.annualSaving)} 万`, kpiClass);
+        Dashboard.updateResultCard('annual-saving', `${fWan(bestComp.annualSaving)} ${t('common.unit.tenThousand')}`, kpiClass);
         let irrText = '--'; 
-        if (bestComp.irr === null || bestComp.irr === -Infinity || bestComp.irr < -1) { irrText = '无法回收'; } 
+        if (bestComp.irr === null || bestComp.irr === -Infinity || bestComp.irr < -1) { irrText = t('dataTable.cannotRecover'); } 
         else { irrText = fPercent(bestComp.irr); }
         Dashboard.updateResultCard('irr', irrText, kpiClass);
-        Dashboard.updateResultCard('pbp', `${bestComp.dynamicPBP} 年`, kpiClass);
-        Dashboard.updateResultCard('co2-reduction', `${fNum(bestComp.co2Reduction, 1)} 吨`, kpiClass);
+        Dashboard.updateResultCard('pbp', `${bestComp.dynamicPBP} ${t('dataTable.year')}`, kpiClass);
+        Dashboard.updateResultCard('co2-reduction', `${fNum(bestComp.co2Reduction, 1)} ${t('common.unit.ton')}`, kpiClass);
     } else {
         Dashboard.updateResultCard('annual-saving', '--', kpiClass); Dashboard.updateResultCard('irr', '--', kpiClass);
     }
     
     setTimeout(() => {
         destroyCharts();
-        const labels = ['热泵', ...results.comparisons.map(c => c.name)];
+        const labels = [t('scenario.modePure'), ...results.comparisons.map(c => c.name)];
         const eCosts = [results.hp.annualEnergyCost/10000, ...results.comparisons.map(c => c.annualEnergyCost/10000)];
         const oCosts = [results.hp.annualOpex/10000, ...results.comparisons.map(c => c.annualOpex/10000)];
         const ctxCost = document.getElementById('costComparisonChart');
@@ -858,21 +911,21 @@ export function renderDashboard(results) {
                 <table class="min-w-full text-base md:text-lg text-left text-gray-700">
                     <thead class="text-sm md:text-base font-semibold text-gray-900 uppercase bg-gray-100 border-b-2 border-gray-200">
                         <tr>
-                            <th class="px-4 py-4 whitespace-nowrap">方案名称</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-right">折算吨汽成本</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-right">综合节能率</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-right">年总成本(万)</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-right">年节省(万)</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-center">静态回收期</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-center">动态回收期</th>
+                            <th class="px-4 py-4 whitespace-nowrap">${t('table.scenarioName')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-right">${t('table.unitSteamCost')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-right">${t('table.savingRate')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-right">${t('table.annualTotalCost')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-right">${t('table.annualSaving')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-center">${t('table.staticPayback')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-center">${t('table.dynamicPayback')}</th>
                             <th class="px-4 py-4 whitespace-nowrap text-center">IRR</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-right hidden lg:table-cell">LCC总值(万)</th>
-                            <th class="px-4 py-4 whitespace-nowrap text-right hidden lg:table-cell">碳减排(吨)</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-right hidden lg:table-cell">${t('table.lccTotalFull')}</th>
+                            <th class="px-4 py-4 whitespace-nowrap text-right hidden lg:table-cell">${t('table.co2Reduction')}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                         <tr class="bg-blue-50/50 border-b border-gray-100 font-semibold text-gray-900">
-                            <td class="px-4 py-4 whitespace-nowrap">工业热泵 (本方案)</td>
+                            <td class="px-4 py-4 whitespace-nowrap">${t('dataTable.hpScheme')}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right text-blue-600">${fYuan(results.hp.unitSteamCost, 1)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right">-</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right">${fWan(results.hp.annualTotalCost)}</td>
@@ -891,7 +944,7 @@ export function renderDashboard(results) {
                             <td class="px-4 py-4 whitespace-nowrap text-right font-medium">${fWan(c.annualTotalCost)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right font-semibold text-green-600">${fWan(c.annualSaving)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-center font-medium">${c.paybackPeriod || '-'}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center font-medium">${c.dynamicPBP} 年</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-center font-medium">${c.dynamicPBP} ${t('dataTable.year')}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-center font-semibold text-blue-500">${
                                 c.irr === null || c.irr < -1 ? '<span class="text-gray-400">N/A</span>' : fPercent(c.irr)
                             }</td>
@@ -902,7 +955,7 @@ export function renderDashboard(results) {
                     </tbody>
                 </table>
             </div>
-            <p class="text-sm text-gray-400 mt-4 md:mt-6">* 注：LCC (全生命周期成本) 已包含资金时间价值，折现率 ${fPercent(results.inputs.discountRate)}。<br>* 折算吨汽成本基于标准蒸汽热值 (约698kWh/吨) 计算。</p>
+            <p class="text-sm text-gray-400 mt-4 md:mt-6">* ${t('dataTable.note1')} ${fPercent(results.inputs.discountRate)}。<br>* ${t('dataTable.note2')}</p>
         `;
     }
     
@@ -911,13 +964,13 @@ export function renderDashboard(results) {
         const isGood = bestComp.irr > 0.08;
         conclusionTab.innerHTML = `
             <div class="p-6 md:p-8 ${isGood ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'} rounded-2xl">
-                <h3 class="text-xl md:text-3xl font-semibold ${isGood ? 'text-green-800' : 'text-yellow-800'} mb-4">${isGood ? '🚀 推荐投资' : '⚖️ 投资回报一般'}</h3>
+                <h3 class="text-xl md:text-3xl font-semibold ${isGood ? 'text-green-800' : 'text-yellow-800'} mb-4">${isGood ? t('conclusion.recommend') : t('conclusion.average')}</h3>
                 <p class="text-lg md:text-xl text-gray-700 leading-relaxed font-normal">
-                    相比于 <strong>${bestComp.name}</strong>，工业热泵方案预计每年可节省 <strong>${fWan(bestComp.annualSaving)} 万元</strong>，综合费用节能率达 <strong>${fPercent(bestComp.savingRate)}</strong>。
+                    ${t('conclusion.compared')} <strong>${bestComp.name}</strong>，${t('conclusion.hpScheme')} <strong>${fWan(bestComp.annualSaving)} ${t('conclusion.yuan')}</strong>，${t('conclusion.savingRateText')} <strong>${fPercent(bestComp.savingRate)}</strong>。
                     <br><br>
-                    您的热泵供热成本相当于 <strong>${fYuan(results.hp.unitSteamCost, 1)} 元/吨蒸汽</strong>，而${bestComp.name}的成本为 <strong>${fYuan(bestComp.unitSteamCost, 1)} 元/吨</strong>。
+                    ${t('conclusion.hpCost')} <strong>${fYuan(results.hp.unitSteamCost, 1)} ${t('conclusion.perTonSteam')}</strong>，${bestComp.name}${t('conclusion.cost')} <strong>${fYuan(bestComp.unitSteamCost, 1)} ${t('conclusion.perTon')}</strong>。
                     <br><br>
-                    全生命周期（${results.inputs.lccYears}年）累计节省 <strong>${fWan(bestComp.lccSaving)} 万元</strong>。动态回收期为 ${bestComp.dynamicPBP} 年。
+                    ${t('conclusion.lifetimeSaving', {years: results.inputs.lccYears})} <strong>${fWan(bestComp.lccSaving)} ${t('conclusion.yuan')}</strong>。${t('conclusion.dynamicPaybackText')} ${bestComp.dynamicPBP} ${t('dataTable.year')}。
                 </p>
             </div>
         `;
